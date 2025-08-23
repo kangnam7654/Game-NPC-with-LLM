@@ -12,17 +12,18 @@ class Simulator:
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
+        self.level = Level()
 
     def run(self):
         while True:
+            dt = self.clock.tick(FPS) / 1000.0  # Convert milliseconds to seconds
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-
-            self.screen.fill((0, 0, 0))
+            self.screen.fill((255, 255, 255))
+            self.level.run(dt)
             pygame.display.flip()
-            self.clock.tick(FPS)
 
 
 if __name__ == "__main__":
