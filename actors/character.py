@@ -9,6 +9,7 @@ class Character(pygame.sprite.Sprite):
         self.image = pygame.Surface(size)
         self.image.fill(color)
 
+        # List of sprites to consider as obstacles for collision detection
         self.obstacles = obstacles
 
         self.rect = self.image.get_rect(topleft=pos)
@@ -33,6 +34,21 @@ class Character(pygame.sprite.Sprite):
             keys[pygame.K_w] or keys[pygame.K_UP]
         )
         return x, y
+
+    def keep_in_bounds(self):
+        screen = pygame.display.get_surface()
+        if self.rect.left <= 0:
+            self.rect.left = 0
+            self.pos.x = float(self.rect.x)
+        if self.rect.right >= screen.get_width():
+            self.rect.right = screen.get_width()
+            self.pos.x = float(self.rect.x)
+        if self.rect.top <= 0:
+            self.rect.top = 0
+            self.pos.y = float(self.rect.y)
+        if self.rect.bottom >= screen.get_height():
+            self.rect.bottom = screen.get_height()
+            self.pos.y = float(self.rect.y)
 
     def collision(self, axis):
         # No obstacles to check against
@@ -59,7 +75,7 @@ class Character(pygame.sprite.Sprite):
                         self.hitbox.bottom = obstacle_hitbox.top
                     elif self.direction.y < 0:  # Moving Up
                         self.hitbox.top = obstacle_hitbox.bottom
-                    
+
                     self.rect.centery = self.hitbox.centery
                     self.pos.y = float(self.rect.y)
 
@@ -73,11 +89,20 @@ class Character(pygame.sprite.Sprite):
         if self.direction.length_squared() > 0:
             self.direction.normalize_ip()
 
-    def move(self, dt=1.0):
-        if self.direction.length_squared() > 0:
-            self.pos += self.direction * self.speed * dt
-            self.rect.topleft = (int(self.pos.x), int(self.pos.y))
+    def move(self, axis: str, dt=1.0):
+        if axis == "horizontal":
+            self.pos.x += self.direction.x * self.speed * dt
+            self.rect.x = int(self.pos.x)
+            self.hitbox.centerx = self.rect.centerx
+            self.collision("horizontal")
+        else:
+            self.pos.y += self.direction.y * self.speed * dt
+            self.rect.y = int(self.pos.y)
+            self.hitbox.centery = self.rect.centery
+            self.collision("vertical")
 
     def update(self, dt=1.0):
         self.input()
-        self.move(dt)
+        self.move("horizontal", dt)
+        self.move("vertical", dt)
+        self.keep_in_bounds()
