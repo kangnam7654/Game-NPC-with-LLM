@@ -82,12 +82,3 @@ class UIManager:
                 )
             ),
         )
-        self.screen.blit(
-            restart_surf,
-            restart_surf.get_rect(
-                center=(
-                    config.SCREEN_WIDTH / 2,
-                    (config.GRID_HEIGHT * config.GRID_SIZE) / 2 + 40,
-                )
-            ),
-        )

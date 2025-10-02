@@ -126,7 +126,3 @@ class Renderer:
             self.ui_manager.draw_game_over(game)
 
         pygame.display.flip()
-        pygame.display.flip()
-        pygame.display.flip()
-        pygame.display.flip()
-        pygame.display.flip()

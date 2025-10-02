@@ -140,6 +140,3 @@ class Game:
         if self.treasure_opened and self.player_pos == self.exit_pos:
             self.state = "game_over"
             self.message = "성공! 보물을 가지고 미로를 탈출했습니다!"
-            self.state = "game_over"
-            self.message = "성공! 보물을 가지고 미로를 탈출했습니다!"
-            self.message = "성공! 보물을 가지고 미로를 탈출했습니다!"

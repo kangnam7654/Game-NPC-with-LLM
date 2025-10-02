@@ -26,5 +26,3 @@ def generate_connected_map():
                 floor_count += 1
 
     return grid
-
-    return grid

@@ -102,5 +102,3 @@ class InputHandler:
                 self.game.handle_interaction()
             if action:
                 self.game.step(action)
-            if action:
-                self.game.step(action)
