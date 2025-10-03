@@ -3,18 +3,36 @@ import os
 import pygame
 
 from configs import config
+from games.game import Game
+from games.states import GameState
 from ui.manager import UIManager
 
 
 class Renderer:
-    """게임의 모든 그래픽 요소를 화면에 그리는 클래스."""
+    """Handles drawing all graphical elements of the game to the screen.
 
-    def __init__(self, screen):
-        self.screen = screen
-        self.fonts = self._load_fonts()
-        self.ui_manager = UIManager(self.screen, self.fonts)
+    Attributes:
+        screen (pygame.Surface): The main screen surface to draw on.
+        fonts (dict[str, pygame.font.Font]): A dictionary of pre-loaded fonts.
+        ui_manager (UIManager): An instance of the UIManager for drawing UI overlays.
+    """
 
-    def _get_korean_font(self):
+    def __init__(self, screen: pygame.Surface) -> None:
+        """Initializes the Renderer.
+
+        Args:
+            screen (pygame.Surface): The main screen surface.
+        """
+        self.screen: pygame.Surface = screen
+        self.fonts: dict[str, pygame.font.Font] = self._load_fonts()
+        self.ui_manager: UIManager = UIManager(self.screen, self.fonts)
+
+    def _get_korean_font(self) -> str | None:
+        """Finds an available Korean font on the system.
+
+        Returns:
+            str | None: The path to a found font file, or None if not found.
+        """
         font_paths = [
             "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
             "/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf",
@@ -25,13 +43,20 @@ class Renderer:
         fonts = ["nanumgothic", "malgungothic", "gulim", "dotum", "applegothic"]
         for font_name in fonts:
             try:
-                return pygame.font.match_font(font_name)
+                font_path = pygame.font.match_font(font_name)
+                if font_path:
+                    return font_path
             except Exception:
                 continue
         print("\n[경고] 한글 폰트를 찾지 못했습니다. 한글이 깨질 수 있습니다.\n")
         return None
 
-    def _load_fonts(self):
+    def _load_fonts(self) -> dict[str, pygame.font.Font]:
+        """Loads the fonts required for the game.
+
+        Returns:
+            dict[str, pygame.font.Font]: A dictionary mapping font names to Font objects.
+        """
         font_path = self._get_korean_font()
         return {
             "main": pygame.font.Font(font_path, 36),
@@ -39,7 +64,16 @@ class Renderer:
             "label": pygame.font.Font(font_path, 18),
         }
 
-    def _draw_labeled_rect(self, pos, color, label):
+    def _draw_labeled_rect(
+        self, pos: tuple[int, int], color: tuple[int, int, int], label: str
+    ) -> None:
+        """Draws a labeled rectangle on the grid.
+
+        Args:
+            pos (tuple[int, int]): The grid position (x, y) of the rectangle.
+            color (tuple[int, int, int]): The color of the rectangle.
+            label (str): The text label to display in the center of the rectangle.
+        """
         rect = pygame.Rect(
             pos[0] * config.GRID_SIZE,
             pos[1] * config.GRID_SIZE,
@@ -50,9 +84,14 @@ class Renderer:
         surf = self.fonts["label"].render(label, True, config.LABEL_TEXT_COLOR)
         self.screen.blit(surf, surf.get_rect(center=rect.center))
 
-    def draw(self, game):
+    def draw(self, game: Game) -> None:
+        """Draws the entire game screen.
+
+        Args:
+            game (Game): The main game object containing the current game state.
+        """
         self.screen.fill(config.BLACK)
-        # 맵 그리기
+        # Draw map
         for r in range(config.GRID_HEIGHT):
             for c in range(config.GRID_WIDTH):
                 color = config.WALL_COLOR if game.grid[r][c] == 1 else config.PATH_COLOR
@@ -67,18 +106,20 @@ class Renderer:
                     ),
                 )
 
-        # 객체 그리기
+        # Draw objects
         self._draw_labeled_rect(game.exit_pos, config.EXIT_COLOR, "E")
         for npc in game.npcs:
-            self._draw_labeled_rect(npc["pos"], npc["color"], npc["label"])
+            self._draw_labeled_rect(npc.pos, npc.color, npc.label)
         if game.treasure_visible:
-            color = (
-                config.TREASURE_OPEN_COLOR
-                if game.treasure_opened
-                else config.TREASURE_COLOR
-            )
+            color =
+                (
+                    config.TREASURE_OPEN_COLOR
+                    if game.treasure_opened
+                    else config.TREASURE_COLOR
+                )
             self._draw_labeled_rect(game.treasure_pos, color, "T")
 
+        # Draw player
         pygame.draw.rect(
             self.screen,
             config.PLAYER_COLOR,
@@ -90,7 +131,7 @@ class Renderer:
             ),
         )
 
-        # 정보 패널
+        # Information Panel
         info_panel = pygame.Rect(
             0,
             config.GRID_HEIGHT * config.GRID_SIZE,
@@ -117,12 +158,12 @@ class Renderer:
             (200, config.GRID_HEIGHT * config.GRID_SIZE + 70),
         )
 
-        # UI 오버레이
-        if game.state == "interaction_menu":
+        # UI Overlays
+        if game.state == GameState.INTERACTION_MENU:
             self.ui_manager.draw_interaction_menu(game)
-        elif game.state == "text_input":
+        elif game.state == GameState.TEXT_INPUT:
             self.ui_manager.draw_text_input(game)
-        elif game.state == "game_over":
+        elif game.state == GameState.GAME_OVER:
             self.ui_manager.draw_game_over(game)
 
         pygame.display.flip()

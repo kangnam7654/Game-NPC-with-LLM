@@ -1,30 +1,47 @@
 import pygame
 
+from games.game import Game
+from games.states import GameState
+
 
 class InputHandler:
-    """모든 사용자 입력을 처리하는 클래스."""
+    """Handles all user input for the game.
 
-    def __init__(self, game):
-        self.game = game
+    Attributes:
+        game (Game): The main game object to modify based on input.
+    """
 
-    def handle_events(self):
-        """Pygame 이벤트를 처리하고 게임 상태를 업데이트합니다."""
+    def __init__(self, game: Game) -> None:
+        """Initializes the InputHandler.
+
+        Args:
+            game (Game): The main game object.
+        """
+        self.game: Game = game
+
+    def handle_events(self) -> bool:
+        """Processes all pending Pygame events and updates the game state.
+
+        Returns:
+            bool: False if the game should quit, True otherwise.
+        """
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False  # 게임 종료 신호
+                return False  # Signal to quit the game
 
-            # 각 게임 상태에 맞는 입력 처리
-            if self.game.state == "text_input":
+            # Delegate to the appropriate handler based on game state
+            if self.game.state == GameState.TEXT_INPUT:
                 self._handle_text_input(event)
-            elif self.game.state == "interaction_menu":
+            elif self.game.state == GameState.INTERACTION_MENU:
                 self._handle_menu_input(event)
-            elif self.game.state == "game_over":
+            elif self.game.state == GameState.GAME_OVER:
                 self._handle_game_over_input(event)
-            elif self.game.state == "playing":
+            elif self.game.state == GameState.PLAYING:
                 self._handle_playing_input(event)
-        return True  # 게임 계속 진행
+        return True  # Signal to continue the game
 
-    def _handle_text_input(self, event):
+    def _handle_text_input(self, event: pygame.event.Event) -> None:
+        """Handles input during the TEXT_INPUT state."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 self.game.process_text_input()
@@ -33,7 +50,7 @@ class InputHandler:
                     self.game.input_text = self.game.input_text[:-1]
             elif event.key == pygame.K_ESCAPE:
                 pygame.key.stop_text_input()
-                self.game.state = "playing"
+                self.game.state = GameState.PLAYING
                 self.game.active_npc = None
                 self.game.chat_history = []
                 self.game.editing_text = ""
@@ -43,7 +60,8 @@ class InputHandler:
             self.game.editing_text = ""
             self.game.input_text += event.text
 
-    def _handle_menu_input(self, event):
+    def _handle_menu_input(self, event: pygame.event.Event) -> None:
+        """Handles input during the INTERACTION_MENU state."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 self.game.menu_selection = (self.game.menu_selection - 1) % 3
@@ -52,44 +70,50 @@ class InputHandler:
             elif event.key == pygame.K_RETURN:
                 self._process_menu_selection()
             elif event.key == pygame.K_ESCAPE:
-                self.game.state = "playing"
+                self.game.state = GameState.PLAYING
                 self.game.active_npc = None
 
-    def _process_menu_selection(self):
-        if self.game.menu_selection == 0:  # 정보 확인
+    def _process_menu_selection(self) -> None:
+        """Processes the selected option in the interaction menu."""
+        if self.game.active_npc is None:
+            return
+
+        if self.game.menu_selection == 0:  # Get fixed info
             npc = self.game.active_npc
-            if npc["name"] == "위치 정보원":
+            if npc.name == "위치 정보원":
                 self.game.knows_location = True
-                self.game.dialogue = f"[{npc['name']}]: 보물은 ({self.game.treasure_pos[0]}, {self.game.treasure_pos[1]}) 좌표에 있네."
+                self.game.dialogue = f"[{npc.name}]: 보물은 ({self.game.treasure_pos[0]}, {self.game.treasure_pos[1]}) 좌표에 있네."
                 self.game.objective = "목표: 보물상자의 암호 알아내기"
-            elif npc["name"] == "암호 전문가":
+            elif npc.name == "암호 전문가":
                 if self.game.knows_location:
                     self.game.knows_password = True
                     self.game.dialogue = (
-                        f"[{npc['name']}]: 암호는 '{self.game.password}'일세."
+                        f"[{npc.name}]: 암호는 '{self.game.password}'일세."
                     )
                     self.game.objective = "목표: 보물상자를 열기"
                 else:
-                    self.game.dialogue = f"[{npc['name']}]: 위치부터 알아오게."
-            self.game.state = "playing"
+                    self.game.dialogue = f"[{npc.name}]: 위치부터 알아오게."
+            self.game.state = GameState.PLAYING
             self.game.active_npc = None
-        elif self.game.menu_selection == 1:  # 자연어 대화
+        elif self.game.menu_selection == 1:  # Start natural language chat
             pygame.key.start_text_input()
-            self.game.state = "text_input"
+            self.game.state = GameState.TEXT_INPUT
             self.game.chat_history.append(
-                f"[{self.game.active_npc['name']}]: 무엇이 궁금한가? (ESC로 종료)"
+                f"[{self.game.active_npc.name}]: 무엇이 궁금한가? (ESC로 종료)"
             )
-        elif self.game.menu_selection == 2:  # 떠나기
-            self.game.state = "playing"
+        elif self.game.menu_selection == 2:  # Leave
+            self.game.state = GameState.PLAYING
             self.game.active_npc = None
 
-    def _handle_game_over_input(self, event):
+    def _handle_game_over_input(self, event: pygame.event.Event) -> None:
+        """Handles input during the GAME_OVER state."""
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
             self.game.reset()
 
-    def _handle_playing_input(self, event):
+    def _handle_playing_input(self, event: pygame.event.Event) -> None:
+        """Handles input during the PLAYING state."""
         if event.type == pygame.KEYDOWN:
-            action = None
+            action: str | None = None
             if event.key in [pygame.K_UP, pygame.K_w]:
                 action = "up"
             elif event.key in [pygame.K_DOWN, pygame.K_s]:
@@ -100,5 +124,6 @@ class InputHandler:
                 action = "right"
             elif event.key == pygame.K_SPACE:
                 self.game.handle_interaction()
+
             if action:
                 self.game.step(action)

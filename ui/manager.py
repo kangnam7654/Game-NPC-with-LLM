@@ -1,23 +1,46 @@
 import pygame
 
 from configs import config
+from games.game import Game
 
 
 class UIManager:
-    """게임의 모든 UI 오버레이(메뉴, 대화창 등)를 그리는 클래스."""
+    """Handles drawing all UI overlays for the game (menus, dialogs, etc.).
 
-    def __init__(self, screen, fonts):
-        self.screen = screen
-        self.fonts = fonts
+    Attributes:
+        screen (pygame.Surface): The main screen surface to draw on.
+        fonts (dict[str, pygame.font.Font]): A dictionary of pre-loaded fonts.
+    """
 
-    def draw_ui_box(self, rect, title=""):
+    def __init__(self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        """Initializes the UIManager.
+
+        Args:
+            screen (pygame.Surface): The main screen surface.
+            fonts (dict[str, pygame.font.Font]): A dictionary of fonts.
+        """
+        self.screen: pygame.Surface = screen
+        self.fonts: dict[str, pygame.font.Font] = fonts
+
+    def draw_ui_box(self, rect: pygame.Rect, title: str = "") -> None:
+        """Draws a standard UI box with a background, border, and optional title.
+
+        Args:
+            rect (pygame.Rect): The rectangle defining the box's position and size.
+            title (str, optional): An optional title to display at the top of the box.
+        """
         pygame.draw.rect(self.screen, config.UI_BG_COLOR, rect)
         pygame.draw.rect(self.screen, config.UI_BORDER_COLOR, rect, 2)
         if title:
             title_surf = self.fonts["info"].render(title, True, config.WHITE)
             self.screen.blit(title_surf, (rect.x + 10, rect.y + 10))
 
-    def draw_interaction_menu(self, game):
+    def draw_interaction_menu(self, game: Game) -> None:
+        """Draws the NPC interaction menu.
+
+        Args:
+            game (Game): The main game object containing the game state.
+        """
         menu_w, menu_h = 300, 150
         menu_rect = pygame.Rect(
             (config.SCREEN_WIDTH - menu_w) / 2,
@@ -25,7 +48,8 @@ class UIManager:
             menu_w,
             menu_h,
         )
-        self.draw_ui_box(menu_rect, f"{game.active_npc['name']}와(과) 대화")
+        if game.active_npc:
+            self.draw_ui_box(menu_rect, f"{game.active_npc.name}와(과) 대화")
 
         options = ["(고정된) 정보 확인", "자연어 대화 시작", "떠나기 (ESC)"]
         for i, option in enumerate(options):
@@ -37,9 +61,14 @@ class UIManager:
             opt_surf = self.fonts["info"].render(option_text, True, text_color)
             self.screen.blit(opt_surf, (menu_rect.x + 20, menu_rect.y + 50 + i * 30))
 
-    def draw_text_input(self, game):
+    def draw_text_input(self, game: Game) -> None:
+        """Draws the text input interface for chatting or entering passwords.
+
+        Args:
+            game (Game): The main game object containing the game state.
+        """
         input_h, chat_h = 100, 200
-        if game.active_npc:  # 채팅창
+        if game.active_npc:  # Chat window
             ui_rect = pygame.Rect(50, 50, config.SCREEN_WIDTH - 100, chat_h + input_h)
             self.draw_ui_box(ui_rect, "대화하기 (ESC로 종료)")
             for i, line in enumerate(game.chat_history):
@@ -52,14 +81,19 @@ class UIManager:
             full_text = game.input_text + game.editing_text + "|"
             text_surf = self.fonts["info"].render(full_text, True, config.WHITE)
             self.screen.blit(text_surf, (input_rect.x + 10, input_rect.y + 40))
-        else:  # 비밀번호 입력창
+        else:  # Password input
             ui_rect = pygame.Rect(100, 100, config.SCREEN_WIDTH - 200, input_h)
             self.draw_ui_box(ui_rect, game.input_prompt)
             full_text = game.input_text + game.editing_text + "|"
             text_surf = self.fonts["info"].render(full_text, True, config.WHITE)
             self.screen.blit(text_surf, text_surf.get_rect(center=ui_rect.center))
 
-    def draw_game_over(self, game):
+    def draw_game_over(self, game: Game) -> None:
+        """Draws the game over screen.
+
+        Args:
+            game (Game): The main game object containing the game state.
+        """
         text_surf = self.fonts["main"].render(game.message, True, config.WHITE)
         self.screen.blit(
             text_surf,
