@@ -111,12 +111,11 @@ class Renderer:
         for npc in game.npcs:
             self._draw_labeled_rect(npc.pos, npc.color, npc.label)
         if game.treasure_visible:
-            color =
-                (
-                    config.TREASURE_OPEN_COLOR
-                    if game.treasure_opened
-                    else config.TREASURE_COLOR
-                )
+            color = (
+                config.TREASURE_OPEN_COLOR
+                if game.treasure_opened
+                else config.TREASURE_COLOR
+            )
             self._draw_labeled_rect(game.treasure_pos, color, "T")
 
         # Draw player
