@@ -98,9 +98,9 @@ class UIManager:
         input_h, chat_h = 100, 200
         if game.active_npc:  # Chat window
             ui_rect = pygame.Rect(50, 50, config.SCREEN_WIDTH - 100, chat_h + input_h)
-            self.draw_ui_box(ui_rect, "대화하기 (ESC로 종료)")
+            self.draw_ui_box(ui_rect, "대화하기 (ESC로 종료, 위/아래 화살표로 스크롤)")
 
-            # --- Text Wrapping Logic ---
+            # --- Text Wrapping and Scrolling Logic ---
             chat_area_width = ui_rect.width - 20  # Padding
             y_offset = ui_rect.y + 40
             line_height = 25
@@ -122,18 +122,40 @@ class UIManager:
                 )
                 all_lines.extend([(line, color) for line in wrapped_lines])
 
-            # Display only the last few lines that fit in the chat box
-            chat_box_height = chat_h - 40  # Top padding
+            chat_box_height = chat_h - 40
             max_visible_lines = chat_box_height // line_height
-            visible_lines = all_lines[-max_visible_lines:]
+
+            # Scrolling
+            max_scroll_offset = len(all_lines) - max_visible_lines
+            if max_scroll_offset < 0:
+                max_scroll_offset = 0
+            if game.chat_scroll_offset > max_scroll_offset:
+                game.chat_scroll_offset = max_scroll_offset
+
+            start_index = len(all_lines) - max_visible_lines - game.chat_scroll_offset
+            end_index = len(all_lines) - game.chat_scroll_offset
+            
+            if start_index < 0:
+                start_index = 0
+            
+            visible_lines = all_lines[start_index:end_index]
 
             for line, color in visible_lines:
                 if y_offset + line_height > ui_rect.y + chat_h:
-                    break  # Stop if we're about to draw outside the chat area
+                    break
                 line_surf = self.fonts["info"].render(line, True, color)
                 self.screen.blit(line_surf, (ui_rect.x + 10, y_offset))
                 y_offset += line_height
-            # --- End of Text Wrapping Logic ---
+
+            # Add scroll indicators
+            if len(all_lines) > max_visible_lines:
+                if end_index < len(all_lines):
+                    scroll_down_surf = self.fonts["info"].render("▼", True, config.WHITE)
+                    self.screen.blit(scroll_down_surf, (ui_rect.right - 30, ui_rect.y + chat_h - 25))
+                if game.chat_scroll_offset > 0:
+                    scroll_up_surf = self.fonts["info"].render("▲", True, config.WHITE)
+                    self.screen.blit(scroll_up_surf, (ui_rect.right - 30, ui_rect.y + 40))
+            # --- End of Text Wrapping and Scrolling Logic ---
 
             input_rect = pygame.Rect(
                 ui_rect.x, ui_rect.y + chat_h, ui_rect.width, input_h

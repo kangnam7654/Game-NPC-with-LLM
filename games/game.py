@@ -58,6 +58,7 @@ class Game:
         self.chat_display_text: str = ""
         self.objective: str = ""
         self.llm_client = llm_client
+        self.chat_scroll_offset: int = 0
         self.reset()
 
     def _get_random_empty_cells(self, count: int) -> list[tuple[int, int]]:
@@ -100,9 +101,7 @@ class Game:
         with open(config.NPC_PW_PROMPT_PATH, "r", encoding="utf-8") as f:
             pw_npc_prompt = f.read()
 
-        loc_npc_bg = loc_npc_prompt.format(
-            self.treasure_pos[0], self.treasure_pos[1]
-        )
+        loc_npc_bg = loc_npc_prompt.format(self.treasure_pos[0], self.treasure_pos[1])
         pw_npc_bg = pw_npc_prompt.format(self.password)
 
         self.npcs = [
@@ -131,6 +130,7 @@ class Game:
         self.dialogue = "정보를 가진 NPC들을 찾아 대화하세요. (스페이스 바)"
         self.chat_display_text = ""
         self.objective = "목표: 보물상자의 위치를 알아내기"
+        self.chat_scroll_offset = 0
 
     def is_adjacent(self, pos1: tuple[int, int], pos2: tuple[int, int]) -> bool:
         """Checks if two positions are adjacent (not diagonally).

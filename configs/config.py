@@ -31,7 +31,8 @@ UI_BORDER_COLOR: Color = (150, 150, 200)
 
 
 # --- AI/LLM Settings ---
-LLM_MODEL_NAME: str = "LGAI-EXAONE/EXAONE-4.0-1.2B"
+# LLM_MODEL_NAME: str = "LGAI-EXAONE/EXAONE-4.0-1.2B"
+LLM_MODEL_NAME: str = "LGAI-EXAONE/EXAONE-4.0-32B-AWQ"
 
 # --- Prompt File Paths ---
 NPC_LOC_PROMPT_PATH: str = "actors/prompts/npc_location.md"

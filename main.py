@@ -2,6 +2,7 @@ import pygame
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from clients.hf_wrapper import HuggingFaceWrapper
+from clients.ollama_client import OllamaClient
 from configs import config
 from controllers.input_handler import InputHandler
 from controllers.interaction_handler import InteractionHandler
@@ -11,12 +12,13 @@ from renderers.renderer import Renderer
 
 def main() -> None:
     """Initializes and runs the main game loop."""
-    model = AutoModelForCausalLM.from_pretrained(
-        config.LLM_MODEL_NAME, torch_dtype="bfloat16", device_map="auto"
-    )
-    tokenizer = AutoTokenizer.from_pretrained(config.LLM_MODEL_NAME)
-    llm_client = HuggingFaceWrapper(model, tokenizer)
+    # model = AutoModelForCausalLM.from_pretrained(
+    #     config.LLM_MODEL_NAME, torch_dtype="bfloat16", device_map="auto"
+    # )
+    # tokenizer = AutoTokenizer.from_pretrained(config.LLM_MODEL_NAME)
+    # llm_client = HuggingFaceWrapper(model, tokenizer)
 
+    llm_client = OllamaClient(model="gpt-oss:20b")
     pygame.init()
     screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
     pygame.display.set_caption("절차적 퀘스트 미로")  # Procedural Quest Maze

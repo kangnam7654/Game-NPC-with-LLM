@@ -43,10 +43,20 @@ class InputHandler:
         """Handles input during the TEXT_INPUT state."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
+                self.game.input_text += self.game.editing_text
+                self.game.editing_text = ""
                 self.interaction_handler.process_text_input()
             elif event.key == pygame.K_BACKSPACE:
-                if not self.game.editing_text:
+                if self.game.editing_text:
+                    pass  # Let IME handle it
+                else:
                     self.game.input_text = self.game.input_text[:-1]
+            elif event.key == pygame.K_UP:
+                self.game.chat_scroll_offset += 1
+            elif event.key == pygame.K_DOWN:
+                self.game.chat_scroll_offset -= 1
+                if self.game.chat_scroll_offset < 0:
+                    self.game.chat_scroll_offset = 0
             elif event.key == pygame.K_ESCAPE:
                 pygame.key.stop_text_input()
                 if self.game.active_npc:
@@ -55,11 +65,12 @@ class InputHandler:
                 self.game.active_npc = None
                 self.game.chat_display_text = ""
                 self.game.editing_text = ""
+                self.game.chat_scroll_offset = 0
         elif event.type == pygame.TEXTEDITING:
             self.game.editing_text = event.text
         elif event.type == pygame.TEXTINPUT:
-            self.game.editing_text = ""
             self.game.input_text += event.text
+            self.game.editing_text = ""
 
     def _handle_menu_input(self, event: pygame.event.Event) -> None:
         """Handles input during the INTERACTION_MENU state."""
@@ -100,7 +111,7 @@ class InputHandler:
         elif self.game.menu_selection == 1:  # Start natural language chat
             pygame.key.start_text_input()
             self.game.state = GameState.TEXT_INPUT
-            initial_message = "무엇이 궁금한가? (ESC로 종료)"
+            initial_message = "무엇이 궁금한가?"
             if not self.game.active_npc.chat_history:
                 self.game.active_npc.chat_history.append(
                     {"role": "assistant", "content": initial_message}

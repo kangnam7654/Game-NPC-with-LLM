@@ -1,4 +1,5 @@
 import re
+
 import pygame
 
 from games.game import Game
@@ -55,13 +56,11 @@ class InteractionHandler:
         player_msg = {"role": "user", "content": self.game.input_text}
         self.game.active_npc.chat_history.append(player_msg)
 
-        # --- LLM Integration ---
-        prompt = (
-            [{"role": "system", "content": self.game.active_npc.background}]
-            + self.game.active_npc.chat_history
-        )
+        prompt = self.game.active_npc.chat_history
 
-        response_data = self.game.llm_client.chat(prompt)
+        response_data = self.game.llm_client.chat(
+            prompt, system_prompt=self.game.active_npc.background
+        )
 
         if response_data:
             response = self._parse_llm_response(response_data)
@@ -79,14 +78,14 @@ class InteractionHandler:
             # Remove emojis
             emoji_pattern = re.compile(
                 "["
-                u"\U0001F600-\U0001F64F"  # emoticons
-                u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                u"\u2600-\u26FF"  # miscellaneous symbols
-                u"\u2700-\u27BF"  # dingbats
-                u"\u3000-\u303F"  # CJK Symbols and Punctuation
-                u"\ufe0f"  # variation selector
+                "\U0001f600-\U0001f64f"  # emoticons
+                "\U0001f300-\U0001f5ff"  # symbols & pictographs
+                "\U0001f680-\U0001f6ff"  # transport & map symbols
+                "\U0001f1e0-\U0001f1ff"  # flags (iOS)
+                "\u2600-\u26ff"  # miscellaneous symbols
+                "\u2700-\u27bf"  # dingbats
+                "\u3000-\u303f"  # CJK Symbols and Punctuation
+                "\ufe0f"  # variation selector
                 "]+",
                 flags=re.UNICODE,
             )
@@ -96,7 +95,9 @@ class InteractionHandler:
         else:
             response = "..."  # Default response on error
 
-        self.game.active_npc.chat_history.append({"role": "assistant", "content": response})
+        self.game.active_npc.chat_history.append(
+            {"role": "assistant", "content": response}
+        )
         # --- End of LLM Integration ---
 
         if len(self.game.active_npc.chat_history) > 6:  # Keep chat history concise
@@ -110,7 +111,9 @@ class InteractionHandler:
         """Handles the logic for entering the treasure password."""
         if self.game.input_text == self.game.password:
             self.game.treasure_opened = True
-            self.game.dialogue = f"암호 '{self.game.password}'를 입력했다. 보물상자가 열렸다!"
+            self.game.dialogue = (
+                f"암호 '{self.game.password}'를 입력했다. 보물상자가 열렸다!"
+            )
             self.game.objective = "목표: 출구로 탈출하기"
         else:
             self.game.dialogue = "암호가 틀렸습니다."
@@ -137,7 +140,10 @@ class InteractionHandler:
             and str(self.game.treasure_pos[0]) in response
         ):
             self.game.knows_location = True
-        if self.game.active_npc.name == "암호 전문가" and self.game.password in response:
+        if (
+            self.game.active_npc.name == "암호 전문가"
+            and self.game.password in response
+        ):
             self.game.knows_password = True
 
     def _update_chat_display(self) -> None:
