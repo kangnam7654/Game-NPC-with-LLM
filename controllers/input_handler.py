@@ -100,9 +100,7 @@ class InputHandler:
         elif self.game.menu_selection == 1:  # Start natural language chat
             pygame.key.start_text_input()
             self.game.state = GameState.TEXT_INPUT
-            initial_message = (
-                f"[{self.game.active_npc.name}]: 무엇이 궁금한가? (ESC로 종료)"
-            )
+            initial_message = "무엇이 궁금한가? (ESC로 종료)"
             if not self.game.active_npc.chat_history:
                 self.game.active_npc.chat_history.append(
                     {"role": "assistant", "content": initial_message}

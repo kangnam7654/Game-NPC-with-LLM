@@ -8,7 +8,6 @@ from games.states import GameState
 from maps.map_generator import generate_connected_map
 
 
-
 class Game:
     """Manages all game states and core logic.
 

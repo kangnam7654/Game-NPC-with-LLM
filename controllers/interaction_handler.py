@@ -1,3 +1,4 @@
+import re
 import pygame
 
 from games.game import Game
@@ -64,6 +65,33 @@ class InteractionHandler:
 
         if response_data:
             response = self._parse_llm_response(response_data)
+
+            # Strip NPC name prefix if it exists
+            name_prefixes = [
+                f"[{self.game.active_npc.name}]:",
+                f"{self.game.active_npc.name}:",
+            ]
+            for prefix in name_prefixes:
+                if response.startswith(prefix):
+                    response = response[len(prefix) :].lstrip()
+                    break
+
+            # Remove emojis
+            emoji_pattern = re.compile(
+                "["
+                u"\U0001F600-\U0001F64F"  # emoticons
+                u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                u"\u2600-\u26FF"  # miscellaneous symbols
+                u"\u2700-\u27BF"  # dingbats
+                u"\u3000-\u303F"  # CJK Symbols and Punctuation
+                u"\ufe0f"  # variation selector
+                "]+",
+                flags=re.UNICODE,
+            )
+            response = emoji_pattern.sub(r"", response)
+
             self._check_info_revelation(response)
         else:
             response = "..."  # Default response on error
