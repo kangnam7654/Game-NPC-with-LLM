@@ -98,6 +98,9 @@ class Renderer:
             npc_pos_pixels = (npc.pos[0] * config.GRID_SIZE, npc.pos[1] * config.GRID_SIZE)
             sprite_name = "npc_loc" if "위치" in npc.name else "npc_pw"
             self.screen.blit(self.sprites[sprite_name], npc_pos_pixels)
+            label_surf = self.fonts["label"].render(npc.name, True, config.WHITE)
+            label_rect = label_surf.get_rect(center=(npc_pos_pixels[0] + config.GRID_SIZE // 2, npc_pos_pixels[1] - 10))
+            self.screen.blit(label_surf, label_rect)
 
         # Draw player
         player_pos_pixels = (
@@ -105,6 +108,9 @@ class Renderer:
             game.player_pos[1] * config.GRID_SIZE,
         )
         self.screen.blit(self.sprites["player"], player_pos_pixels)
+        label_surf = self.fonts["label"].render("나", True, config.WHITE)
+        label_rect = label_surf.get_rect(center=(player_pos_pixels[0] + config.GRID_SIZE // 2, player_pos_pixels[1] - 10))
+        self.screen.blit(label_surf, label_rect)
 
         # Information Panel (remains the same)
         info_panel = pygame.Rect(
