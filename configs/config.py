@@ -1,12 +1,10 @@
 """Configuration file for game settings and constants."""
 
-
-
 # --- Game Settings (Adjustable) ---
 GRID_WIDTH: int = 25  # Maze width
-GRID_HEIGHT: int = 19  # Maze height
+GRID_HEIGHT: int = 25  # Maze height
 GRID_SIZE: int = 30  # Pixel size of each cell
-WALL_DENSITY: float = 0.25  # Wall density (higher value means narrower paths)
+WALL_DENSITY: float = 0.1  # Wall density (higher value means narrower paths)
 
 INFO_PANEL_HEIGHT: int = 120  # Height of the bottom info panel
 SCREEN_WIDTH: int = GRID_WIDTH * GRID_SIZE
@@ -30,3 +28,11 @@ NPC_PW_COLOR: Color = (0, 200, 200)
 LABEL_TEXT_COLOR: Color = (255, 255, 255)
 UI_BG_COLOR: Color = (10, 10, 30)
 UI_BORDER_COLOR: Color = (150, 150, 200)
+
+
+# --- AI/LLM Settings ---
+LLM_MODEL_NAME: str = "LGAI-EXAONE/EXAONE-4.0-1.2B"
+
+# --- Prompt File Paths ---
+NPC_LOC_PROMPT_PATH: str = "actors/prompts/npc_location.md"
+NPC_PW_PROMPT_PATH: str = "actors/prompts/npc_password.md"

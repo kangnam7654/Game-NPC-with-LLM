@@ -9,34 +9,18 @@ from ui.manager import UIManager
 
 
 class Renderer:
-    """Handles drawing all graphical elements of the game to the screen.
-
-    Attributes:
-        screen (pygame.Surface): The main screen surface to draw on.
-        fonts (dict[str, pygame.font.Font]): A dictionary of pre-loaded fonts.
-        ui_manager (UIManager): An instance of the UIManager for drawing UI overlays.
-    """
+    """Handles drawing all graphical elements of the game to the screen."""
 
     def __init__(self, screen: pygame.Surface) -> None:
-        """Initializes the Renderer.
-
-        Args:
-            screen (pygame.Surface): The main screen surface.
-        """
+        """Initializes the Renderer."""
         self.screen: pygame.Surface = screen
         self.fonts: dict[str, pygame.font.Font] = self._load_fonts()
         self.ui_manager: UIManager = UIManager(self.screen, self.fonts)
+        self.sprites: dict[str, pygame.Surface] = self._load_sprites()
 
     def _get_korean_font(self) -> str | None:
-        """Finds an available Korean font on the system.
-
-        Returns:
-            str | None: The path to a found font file, or None if not found.
-        """
-        font_paths = [
-            "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
-            "/usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf",
-        ]
+        """Finds an available Korean font on the system."""
+        font_paths = ["fonts/NanumGothic.ttf"]
         for path in font_paths:
             if os.path.exists(path):
                 return path
@@ -52,11 +36,7 @@ class Renderer:
         return None
 
     def _load_fonts(self) -> dict[str, pygame.font.Font]:
-        """Loads the fonts required for the game.
-
-        Returns:
-            dict[str, pygame.font.Font]: A dictionary mapping font names to Font objects.
-        """
+        """Loads the fonts required for the game."""
         font_path = self._get_korean_font()
         return {
             "main": pygame.font.Font(font_path, 36),
@@ -64,73 +44,69 @@ class Renderer:
             "label": pygame.font.Font(font_path, 18),
         }
 
-    def _draw_labeled_rect(
-        self, pos: tuple[int, int], color: tuple[int, int, int], label: str
-    ) -> None:
-        """Draws a labeled rectangle on the grid.
-
-        Args:
-            pos (tuple[int, int]): The grid position (x, y) of the rectangle.
-            color (tuple[int, int, int]): The color of the rectangle.
-            label (str): The text label to display in the center of the rectangle.
-        """
-        rect = pygame.Rect(
-            pos[0] * config.GRID_SIZE,
-            pos[1] * config.GRID_SIZE,
-            config.GRID_SIZE,
-            config.GRID_SIZE,
-        )
-        pygame.draw.rect(self.screen, color, rect)
-        surf = self.fonts["label"].render(label, True, config.LABEL_TEXT_COLOR)
-        self.screen.blit(surf, surf.get_rect(center=rect.center))
+    def _load_sprites(self) -> dict[str, pygame.Surface]:
+        """Loads all sprite images and scales them to the grid size."""
+        sprite_paths = {
+            "player": "sprites/player.png",
+            "wall": "sprites/wall.png",
+            "floor": "sprites/floor.png",
+            "exit": "sprites/exit.png",
+            "treasure": "sprites/treasure.png",
+            "treasure_open": "sprites/treasure_open.png",
+            "npc_loc": "sprites/npc_loc.png",
+            "npc_pw": "sprites/npc_pw.png",
+        }
+        loaded_sprites = {}
+        for name, path in sprite_paths.items():
+            try:
+                sprite = pygame.image.load(path).convert_alpha()
+                loaded_sprites[name] = pygame.transform.scale(
+                    sprite, (config.GRID_SIZE, config.GRID_SIZE)
+                )
+            except pygame.error:
+                print(f"[경고] 스프라이트 파일을 찾을 수 없습니다: {path}")
+                temp_surface = pygame.Surface((config.GRID_SIZE, config.GRID_SIZE))
+                temp_surface.fill(config.GRAY)  # Use a visible placeholder color
+                loaded_sprites[name] = temp_surface
+        return loaded_sprites
 
     def draw(self, game: Game) -> None:
-        """Draws the entire game screen.
-
-        Args:
-            game (Game): The main game object containing the current game state.
-        """
+        """Draws the entire game screen using sprites."""
         self.screen.fill(config.BLACK)
-        # Draw map
+
+        # Draw map (floor and walls)
         for r in range(config.GRID_HEIGHT):
             for c in range(config.GRID_WIDTH):
-                color = config.WALL_COLOR if game.grid[r][c] == 1 else config.PATH_COLOR
-                pygame.draw.rect(
-                    self.screen,
-                    color,
-                    (
-                        c * config.GRID_SIZE,
-                        r * config.GRID_SIZE,
-                        config.GRID_SIZE,
-                        config.GRID_SIZE,
-                    ),
-                )
+                pos_pixels = (c * config.GRID_SIZE, r * config.GRID_SIZE)
+                sprite_name = "wall" if game.grid[r][c] == 1 else "floor"
+                self.screen.blit(self.sprites[sprite_name], pos_pixels)
 
         # Draw objects
-        self._draw_labeled_rect(game.exit_pos, config.EXIT_COLOR, "E")
-        for npc in game.npcs:
-            self._draw_labeled_rect(npc.pos, npc.color, npc.label)
+        exit_pos_pixels = (game.exit_pos[0] * config.GRID_SIZE, game.exit_pos[1] * config.GRID_SIZE)
+        self.screen.blit(self.sprites["exit"], exit_pos_pixels)
+
         if game.treasure_visible:
-            color = (
-                config.TREASURE_OPEN_COLOR
-                if game.treasure_opened
-                else config.TREASURE_COLOR
+            treasure_pos_pixels = (
+                game.treasure_pos[0] * config.GRID_SIZE,
+                game.treasure_pos[1] * config.GRID_SIZE,
             )
-            self._draw_labeled_rect(game.treasure_pos, color, "T")
+            sprite_name = "treasure_open" if game.treasure_opened else "treasure"
+            self.screen.blit(self.sprites[sprite_name], treasure_pos_pixels)
+
+        # Draw NPCs
+        for npc in game.npcs:
+            npc_pos_pixels = (npc.pos[0] * config.GRID_SIZE, npc.pos[1] * config.GRID_SIZE)
+            sprite_name = "npc_loc" if "위치" in npc.name else "npc_pw"
+            self.screen.blit(self.sprites[sprite_name], npc_pos_pixels)
 
         # Draw player
-        pygame.draw.rect(
-            self.screen,
-            config.PLAYER_COLOR,
-            (
-                game.player_pos[0] * config.GRID_SIZE,
-                game.player_pos[1] * config.GRID_SIZE,
-                config.GRID_SIZE,
-                config.GRID_SIZE,
-            ),
+        player_pos_pixels = (
+            game.player_pos[0] * config.GRID_SIZE,
+            game.player_pos[1] * config.GRID_SIZE,
         )
+        self.screen.blit(self.sprites["player"], player_pos_pixels)
 
-        # Information Panel
+        # Information Panel (remains the same)
         info_panel = pygame.Rect(
             0,
             config.GRID_HEIGHT * config.GRID_SIZE,
@@ -157,7 +133,7 @@ class Renderer:
             (200, config.GRID_HEIGHT * config.GRID_SIZE + 70),
         )
 
-        # UI Overlays
+        # UI Overlays (remains the same)
         if game.state == GameState.INTERACTION_MENU:
             self.ui_manager.draw_interaction_menu(game)
         elif game.state == GameState.TEXT_INPUT:

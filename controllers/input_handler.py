@@ -1,23 +1,22 @@
 import pygame
 
+from controllers.interaction_handler import InteractionHandler
 from games.game import Game
 from games.states import GameState
 
 
 class InputHandler:
-    """Handles all user input for the game.
+    """Handles all user input for the game."""
 
-    Attributes:
-        game (Game): The main game object to modify based on input.
-    """
-
-    def __init__(self, game: Game) -> None:
+    def __init__(self, game: Game, interaction_handler: InteractionHandler) -> None:
         """Initializes the InputHandler.
 
         Args:
             game (Game): The main game object.
+            interaction_handler (InteractionHandler): Handler for game interactions.
         """
         self.game: Game = game
+        self.interaction_handler: InteractionHandler = interaction_handler
 
     def handle_events(self) -> bool:
         """Processes all pending Pygame events and updates the game state.
@@ -44,15 +43,17 @@ class InputHandler:
         """Handles input during the TEXT_INPUT state."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                self.game.process_text_input()
+                self.interaction_handler.process_text_input()
             elif event.key == pygame.K_BACKSPACE:
                 if not self.game.editing_text:
                     self.game.input_text = self.game.input_text[:-1]
             elif event.key == pygame.K_ESCAPE:
                 pygame.key.stop_text_input()
+                if self.game.active_npc:
+                    self.game.active_npc.chat_history = []
                 self.game.state = GameState.PLAYING
                 self.game.active_npc = None
-                self.game.chat_history = []
+                self.game.chat_display_text = ""
                 self.game.editing_text = ""
         elif event.type == pygame.TEXTEDITING:
             self.game.editing_text = event.text
@@ -72,6 +73,7 @@ class InputHandler:
             elif event.key == pygame.K_ESCAPE:
                 self.game.state = GameState.PLAYING
                 self.game.active_npc = None
+                self.game.chat_display_text = ""
 
     def _process_menu_selection(self) -> None:
         """Processes the selected option in the interaction menu."""
@@ -98,12 +100,19 @@ class InputHandler:
         elif self.game.menu_selection == 1:  # Start natural language chat
             pygame.key.start_text_input()
             self.game.state = GameState.TEXT_INPUT
-            self.game.chat_history.append(
+            initial_message = (
                 f"[{self.game.active_npc.name}]: 무엇이 궁금한가? (ESC로 종료)"
             )
+            if not self.game.active_npc.chat_history:
+                self.game.active_npc.chat_history.append(
+                    {"role": "assistant", "content": initial_message}
+                )
+            self.interaction_handler._update_chat_display()
+
         elif self.game.menu_selection == 2:  # Leave
             self.game.state = GameState.PLAYING
             self.game.active_npc = None
+            self.game.chat_display_text = ""
 
     def _handle_game_over_input(self, event: pygame.event.Event) -> None:
         """Handles input during the GAME_OVER state."""
@@ -123,7 +132,7 @@ class InputHandler:
             elif event.key in [pygame.K_RIGHT, pygame.K_d]:
                 action = "right"
             elif event.key == pygame.K_SPACE:
-                self.game.handle_interaction()
+                self.interaction_handler.handle_interaction()
 
             if action:
                 self.game.step(action)
