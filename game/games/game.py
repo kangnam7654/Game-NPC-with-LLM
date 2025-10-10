@@ -1,11 +1,10 @@
 import random
 
-import pygame
 
-from actors.npc import NPC
+from game.actors.npc import NPC
 from configs import config
-from games.states import GameState
-from maps.map_generator import generate_connected_map
+from game.games.states import GameState
+from game.maps.map_generator import generate_connected_map
 
 
 class Game:

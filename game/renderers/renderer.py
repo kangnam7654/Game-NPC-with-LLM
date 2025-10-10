@@ -3,9 +3,9 @@ import os
 import pygame
 
 from configs import config
-from games.game import Game
-from games.states import GameState
-from ui.manager import UIManager
+from game.games.game import Game
+from game.games.states import GameState
+from game.ui.manager import UIManager
 
 
 class Renderer:
@@ -20,7 +20,7 @@ class Renderer:
 
     def _get_korean_font(self) -> str | None:
         """Finds an available Korean font on the system."""
-        font_paths = ["fonts/NanumGothic.ttf"]
+        font_paths = ["game/fonts/NanumGothic.ttf"]
         for path in font_paths:
             if os.path.exists(path):
                 return path
@@ -36,25 +36,37 @@ class Renderer:
         return None
 
     def _load_fonts(self) -> dict[str, pygame.font.Font]:
-        """Loads the fonts required for the game."""
+        """Loads the fonts required for the game, scaling them based on the final grid size."""
         font_path = self._get_korean_font()
+
+        # --- Font Scaling Logic ---
+        # Define a reference grid size that corresponds to the base font sizes.
+        REFERENCE_GRID_SIZE = 24
+        scaling_factor = config.GRID_SIZE / REFERENCE_GRID_SIZE
+
+        # Calculate scaled font sizes, ensuring a minimum size of 1.
+        main_size = max(1, int(config.BASE_FONT_MAIN_SIZE * scaling_factor))
+        info_size = max(1, int(config.BASE_FONT_INFO_SIZE * scaling_factor))
+        label_size = max(1, int(config.BASE_FONT_LABEL_SIZE * scaling_factor))
+        # --- End of Scaling Logic ---
+
         return {
-            "main": pygame.font.Font(font_path, 36),
-            "info": pygame.font.Font(font_path, 20),
-            "label": pygame.font.Font(font_path, 18),
+            "main": pygame.font.Font(font_path, main_size),
+            "info": pygame.font.Font(font_path, info_size),
+            "label": pygame.font.Font(font_path, label_size),
         }
 
     def _load_sprites(self) -> dict[str, pygame.Surface]:
         """Loads all sprite images and scales them to the grid size."""
         sprite_paths = {
-            "player": "sprites/player.png",
-            "wall": "sprites/wall.png",
-            "floor": "sprites/floor.png",
-            "exit": "sprites/exit.png",
-            "treasure": "sprites/treasure.png",
-            "treasure_open": "sprites/treasure_open.png",
-            "npc_loc": "sprites/npc_loc.png",
-            "npc_pw": "sprites/npc_pw.png",
+            "player": "game/sprites/player.png",
+            "wall": "game/sprites/wall.png",
+            "floor": "game/sprites/floor.png",
+            "exit": "game/sprites/exit.png",
+            "treasure": "game/sprites/treasure.png",
+            "treasure_open": "game/sprites/treasure_open.png",
+            "npc_loc": "game/sprites/npc_loc.png",
+            "npc_pw": "game/sprites/npc_pw.png",
         }
         loaded_sprites = {}
         for name, path in sprite_paths.items():
@@ -112,32 +124,56 @@ class Renderer:
         label_rect = label_surf.get_rect(center=(player_pos_pixels[0] + config.GRID_SIZE // 2, player_pos_pixels[1] - 10))
         self.screen.blit(label_surf, label_rect)
 
-        # Information Panel (remains the same)
-        info_panel = pygame.Rect(
+        # --- Information Panel (with text wrapping) ---
+        info_panel_rect = pygame.Rect(
             0,
             config.GRID_HEIGHT * config.GRID_SIZE,
             config.SCREEN_WIDTH,
             config.INFO_PANEL_HEIGHT,
         )
-        pygame.draw.rect(self.screen, config.GRAY, info_panel)
-        self.screen.blit(
-            self.fonts["info"].render(game.objective, True, config.WHITE),
-            (10, config.GRID_HEIGHT * config.GRID_SIZE + 10),
-        )
-        self.screen.blit(
-            self.fonts["info"].render(f"정보: {game.dialogue}", True, config.WHITE),
-            (10, config.GRID_HEIGHT * config.GRID_SIZE + 40),
-        )
+        pygame.draw.rect(self.screen, config.GRAY, info_panel_rect)
+
+        line_height = self.fonts["info"].get_linesize()
+        y_offset = info_panel_rect.y + 5
+        max_width = config.SCREEN_WIDTH - 20 # Padding
+
+        # Wrap and draw Objective
+        for line in self.ui_manager._wrap_text(game.objective, self.fonts["info"], max_width):
+            if y_offset + line_height > info_panel_rect.bottom: break
+            line_surf = self.fonts["info"].render(line, True, config.WHITE)
+            self.screen.blit(line_surf, (10, y_offset))
+            y_offset += line_height
+        
+        y_offset += 3 # Spacing
+
+        # Wrap and draw Dialogue
+        dialogue_text = f"정보: {game.dialogue}"
+        for line in self.ui_manager._wrap_text(dialogue_text, self.fonts["info"], max_width):
+            if y_offset + line_height > info_panel_rect.bottom: break
+            line_surf = self.fonts["info"].render(line, True, config.WHITE)
+            self.screen.blit(line_surf, (10, y_offset))
+            y_offset += line_height
+
+        y_offset += 3 # Spacing
+
+        # Draw Coords and Status (on one line if possible)
         coords = f"좌표: ({game.player_pos[0]}, {game.player_pos[1]})"
         status = f"위치: {'O' if game.knows_location else 'X'} | 암호: {'O' if game.knows_password else 'X'} | 상자: {'O' if game.treasure_opened else 'X'}"
-        self.screen.blit(
-            self.fonts["info"].render(coords, True, config.WHITE),
-            (10, config.GRID_HEIGHT * config.GRID_SIZE + 70),
-        )
-        self.screen.blit(
-            self.fonts["info"].render(status, True, config.WHITE),
-            (200, config.GRID_HEIGHT * config.GRID_SIZE + 70),
-        )
+        
+        coords_surf = self.fonts["info"].render(coords, True, config.WHITE)
+        status_surf = self.fonts["info"].render(status, True, config.WHITE)
+
+        # Check if they fit on one line
+        if 10 + coords_surf.get_width() + 10 + status_surf.get_width() < config.SCREEN_WIDTH:
+            if y_offset + line_height <= info_panel_rect.bottom:
+                self.screen.blit(coords_surf, (10, y_offset))
+                self.screen.blit(status_surf, (10 + coords_surf.get_width() + 10, y_offset))
+        else: # Draw them on separate lines
+            if y_offset + line_height <= info_panel_rect.bottom:
+                self.screen.blit(coords_surf, (10, y_offset))
+                y_offset += line_height
+            if y_offset + line_height <= info_panel_rect.bottom:
+                self.screen.blit(status_surf, (10, y_offset))
 
         # UI Overlays (remains the same)
         if game.state == GameState.INTERACTION_MENU:

@@ -1,12 +1,14 @@
 """Configuration file for game settings and constants."""
 
 # --- Game Settings (Adjustable) ---
-GRID_WIDTH: int = 25  # Maze width
-GRID_HEIGHT: int = 25  # Maze height
-GRID_SIZE: int = 30  # Pixel size of each cell
+MIN_WINDOW_WIDTH: int = 800
+MIN_WINDOW_HEIGHT: int = 640
+GRID_WIDTH: int = 8  # Maze width
+GRID_HEIGHT: int = 8  # Maze height
+GRID_SIZE: int = 30  # Default pixel size of each cell (can be scaled up)
 WALL_DENSITY: float = 0.1  # Wall density (higher value means narrower paths)
 
-INFO_PANEL_HEIGHT: int = 120  # Height of the bottom info panel
+INFO_PANEL_HEIGHT: int = 180  # Height of the bottom info panel
 SCREEN_WIDTH: int = GRID_WIDTH * GRID_SIZE
 SCREEN_HEIGHT: int = GRID_HEIGHT * GRID_SIZE + INFO_PANEL_HEIGHT
 FPS: int = 30
@@ -35,5 +37,11 @@ UI_BORDER_COLOR: Color = (150, 150, 200)
 LLM_MODEL_NAME: str = "LGAI-EXAONE/EXAONE-4.0-32B-AWQ"
 
 # --- Prompt File Paths ---
-NPC_LOC_PROMPT_PATH: str = "actors/prompts/npc_location.md"
-NPC_PW_PROMPT_PATH: str = "actors/prompts/npc_password.md"
+NPC_LOC_PROMPT_PATH: str = "llm/prompts/npc_location.md"
+NPC_PW_PROMPT_PATH: str = "llm/prompts/npc_password.md"
+
+
+# --- Font Settings ---
+BASE_FONT_MAIN_SIZE: int = 30
+BASE_FONT_INFO_SIZE: int = 8
+BASE_FONT_LABEL_SIZE: int = 11

@@ -2,8 +2,8 @@ import re
 
 import pygame
 
-from games.game import Game
-from games.states import GameState
+from game.games.game import Game
+from game.games.states import GameState
 
 
 class InteractionHandler:

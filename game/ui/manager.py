@@ -1,7 +1,7 @@
 import pygame
 
 from configs import config
-from games.game import Game
+from game.games.game import Game
 
 
 class UIManager:
@@ -15,48 +15,36 @@ class UIManager:
     def __init__(
         self, screen: pygame.Surface, fonts: dict[str, pygame.font.Font]
     ) -> None:
-        """Initializes the UIManager.
-
-        Args:
-            screen (pygame.Surface): The main screen surface.
-            fonts (dict[str, pygame.font.Font]): A dictionary of fonts.
-        """
+        """Initializes the UIManager."""
         self.screen: pygame.Surface = screen
         self.fonts: dict[str, pygame.font.Font] = fonts
 
     def _wrap_text(
         self, text: str, font: pygame.font.Font, max_width: int
     ) -> list[str]:
-        """Wraps text to fit within a specified width.
-
-        Args:
-            text (str): The text to wrap.
-            font (pygame.font.Font): The font to use for measuring text width.
-            max_width (int): The maximum width in pixels for a line.
-
-        Returns:
-            list[str]: A list of strings, where each string is a wrapped line.
-        """
-        words = text.split(" ")
+        """Wraps text to fit within a specified width using character-by-character wrapping."""
         lines = []
         current_line = ""
-        for word in words:
-            test_line = f"{current_line} {word}".strip()
-            if font.size(test_line)[0] <= max_width:
-                current_line = test_line
+        if max_width <= 0:
+            return [text]
+
+        for char in text:
+            # Handle explicit newlines
+            if char == '\n':
+                lines.append(current_line)
+                current_line = ""
+                continue
+
+            if font.size(current_line + char)[0] <= max_width:
+                current_line += char
             else:
                 lines.append(current_line)
-                current_line = word
+                current_line = char
         lines.append(current_line)
         return lines
 
     def draw_ui_box(self, rect: pygame.Rect, title: str = "") -> None:
-        """Draws a standard UI box with a background, border, and optional title.
-
-        Args:
-            rect (pygame.Rect): The rectangle defining the box's position and size.
-            title (str, optional): An optional title to display at the top of the box.
-        """
+        """Draws a standard UI box with a background, border, and optional title."""
         pygame.draw.rect(self.screen, config.UI_BG_COLOR, rect)
         pygame.draw.rect(self.screen, config.UI_BORDER_COLOR, rect, 2)
         if title:
@@ -64,80 +52,92 @@ class UIManager:
             self.screen.blit(title_surf, (rect.x + 10, rect.y + 10))
 
     def draw_interaction_menu(self, game: Game) -> None:
-        """Draws the NPC interaction menu.
+        """Draws the NPC interaction menu."""
+        # --- Dynamic Size Calculation ---
+        menu_w = min(config.SCREEN_WIDTH * 0.9, 400)
+        line_height = self.fonts["info"].get_linesize()
+        title_h = line_height
+        options_h = 3 * (line_height + 5)
+        padding = 40
+        menu_h = title_h + options_h + padding
 
-        Args:
-            game (Game): The main game object containing the game state.
-        """
-        menu_w, menu_h = 300, 150
+        # --- Centering and Drawing Box ---
+        game_area_h = config.SCREEN_HEIGHT - config.INFO_PANEL_HEIGHT
         menu_rect = pygame.Rect(
             (config.SCREEN_WIDTH - menu_w) / 2,
-            (config.SCREEN_HEIGHT - config.INFO_PANEL_HEIGHT - menu_h) / 2,
+            (game_area_h - menu_h) / 2,
             menu_w,
             menu_h,
         )
         if game.active_npc:
             self.draw_ui_box(menu_rect, f"{game.active_npc.name}와(과) 대화")
 
+        # --- Drawing Options ---
         options = ["(고정된) 정보 확인", "자유롭게 대화하기", "떠나기 (ESC)"]
+        y_start = menu_rect.y + title_h + 20
+
         for i, option in enumerate(options):
             prefix = "> " if i == game.menu_selection else "  "
             text_color = (
                 config.PLAYER_COLOR if i == game.menu_selection else config.WHITE
             )
-            option_text = f"{prefix}{i+1}. {option}"
+            option_text = f"{prefix}{i + 1}. {option}"
+
+            available_width = menu_rect.width - 40
+            if self.fonts["info"].size(option_text)[0] > available_width:
+                while self.fonts["info"].size(option_text + "..")[0] > available_width:
+                    option_text = option_text[:-1]
+                option_text += ".."
+
             opt_surf = self.fonts["info"].render(option_text, True, text_color)
-            self.screen.blit(opt_surf, (menu_rect.x + 20, menu_rect.y + 50 + i * 30))
+            y_pos = y_start + i * (line_height + 5)
+            self.screen.blit(opt_surf, (menu_rect.x + 20, y_pos))
 
     def draw_text_input(self, game: Game) -> None:
-        """Draws the text input interface for chatting or entering passwords.
-
-        Args:
-            game (Game): The main game object containing the game state.
-        """
-        input_h, chat_h = 100, 200
+        """Draws the text input interface for chatting or entering passwords."""
         if game.active_npc:  # Chat window
-            ui_rect = pygame.Rect(50, 50, config.SCREEN_WIDTH - 100, chat_h + input_h)
+            game_area_h = config.SCREEN_HEIGHT - config.INFO_PANEL_HEIGHT
+            ui_w = config.SCREEN_WIDTH * 0.9
+            ui_h = int(game_area_h * 0.8)
+            ui_x = (config.SCREEN_WIDTH - ui_w) / 2
+            ui_y = (game_area_h - ui_h) / 2
+            ui_rect = pygame.Rect(ui_x, ui_y, ui_w, ui_h)
+
+            input_h = 100  # Keep user input height fixed
+            chat_h = ui_h - input_h
+            if chat_h < 0:
+                chat_h = 0
+
             self.draw_ui_box(ui_rect, "대화하기 (ESC로 종료, 위/아래 화살표로 스크롤)")
 
-            # --- Text Wrapping and Scrolling Logic ---
-            chat_area_width = ui_rect.width - 20  # Padding
+            chat_area_width = ui_rect.width - 20
             y_offset = ui_rect.y + 40
-            line_height = 25
+            line_height = self.fonts["info"].get_linesize()
 
             all_lines = []
             for message in game.active_npc.chat_history:
                 role = message["role"]
                 content = message["content"]
-
-                if role == "user":
-                    prefix = "Player: "
-                    color = config.PLAYER_COLOR
-                else:  # assistant
-                    prefix = f"{game.active_npc.name}: "
-                    color = config.WHITE
-
-                wrapped_lines = self._wrap_text(
-                    prefix + content, self.fonts["info"], chat_area_width
-                )
+                prefix = f"{game.active_npc.name}: " if role != 'user' else 'Player: '
+                color = config.WHITE if role != 'user' else config.PLAYER_COLOR
+                wrapped_lines = self._wrap_text(prefix + content, self.fonts["info"], chat_area_width)
                 all_lines.extend([(line, color) for line in wrapped_lines])
 
             chat_box_height = chat_h - 40
-            max_visible_lines = chat_box_height // line_height
+            max_visible_lines = chat_box_height // line_height if line_height > 0 else 0
 
-            # Scrolling
             max_scroll_offset = len(all_lines) - max_visible_lines
             if max_scroll_offset < 0:
                 max_scroll_offset = 0
             if game.chat_scroll_offset > max_scroll_offset:
                 game.chat_scroll_offset = max_scroll_offset
+            if game.chat_scroll_offset < 0:
+                game.chat_scroll_offset = 0
 
             start_index = len(all_lines) - max_visible_lines - game.chat_scroll_offset
             end_index = len(all_lines) - game.chat_scroll_offset
-            
             if start_index < 0:
                 start_index = 0
-            
             visible_lines = all_lines[start_index:end_index]
 
             for line, color in visible_lines:
@@ -147,7 +147,6 @@ class UIManager:
                 self.screen.blit(line_surf, (ui_rect.x + 10, y_offset))
                 y_offset += line_height
 
-            # Add scroll indicators
             if len(all_lines) > max_visible_lines:
                 if end_index < len(all_lines):
                     scroll_down_surf = self.fonts["info"].render("▼", True, config.WHITE)
@@ -155,28 +154,40 @@ class UIManager:
                 if game.chat_scroll_offset > 0:
                     scroll_up_surf = self.fonts["info"].render("▲", True, config.WHITE)
                     self.screen.blit(scroll_up_surf, (ui_rect.right - 30, ui_rect.y + 40))
-            # --- End of Text Wrapping and Scrolling Logic ---
 
-            input_rect = pygame.Rect(
-                ui_rect.x, ui_rect.y + chat_h, ui_rect.width, input_h
-            )
+            input_rect = pygame.Rect(ui_rect.x, ui_rect.y + chat_h, ui_rect.width, input_h)
             self.draw_ui_box(input_rect, "내용 입력 (Enter로 전송):")
-            full_text = game.input_text + game.editing_text + "|"
-            text_surf = self.fonts["info"].render(full_text, True, config.WHITE)
-            self.screen.blit(text_surf, (input_rect.x + 10, input_rect.y + 40))
+            full_text = game.input_text + "|"
+            available_width = input_rect.width - 20
+            wrapped_lines = self._wrap_text(full_text, self.fonts["info"], available_width)
+
+            y_offset = input_rect.y + 40
+            for line in wrapped_lines:
+                if y_offset + line_height > input_rect.bottom - 10:
+                    break
+                text_surf = self.fonts["info"].render(line, True, config.WHITE)
+                self.screen.blit(text_surf, (input_rect.x + 10, y_offset))
+                y_offset += line_height
         else:  # Password input
-            ui_rect = pygame.Rect(100, 100, config.SCREEN_WIDTH - 200, input_h)
+            ui_rect = pygame.Rect(100, 100, config.SCREEN_WIDTH - 200, 100)
             self.draw_ui_box(ui_rect, game.input_prompt)
-            full_text = game.input_text + game.editing_text + "|"
-            text_surf = self.fonts["info"].render(full_text, True, config.WHITE)
-            self.screen.blit(text_surf, text_surf.get_rect(center=ui_rect.center))
+            full_text = game.input_text + "|"
+
+            # Wrap the password input text
+            available_width = ui_rect.width - 20
+            wrapped_lines = self._wrap_text(full_text, self.fonts["info"], available_width)
+            
+            y_offset = ui_rect.y + 40
+            line_height = self.fonts["info"].get_linesize()
+            for line in wrapped_lines:
+                if y_offset + line_height > ui_rect.bottom - 10:
+                    break
+                text_surf = self.fonts["info"].render(line, True, config.WHITE)
+                self.screen.blit(text_surf, (ui_rect.x + 10, y_offset))
+                y_offset += line_height
 
     def draw_game_over(self, game: Game) -> None:
-        """Draws the game over screen.
-
-        Args:
-            game (Game): The main game object containing the game state.
-        """
+        """Draws the game over screen."""
         text_surf = self.fonts["main"].render(game.message, True, config.WHITE)
         self.screen.blit(
             text_surf,

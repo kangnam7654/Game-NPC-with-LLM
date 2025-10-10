@@ -1,8 +1,8 @@
 import pygame
 
-from controllers.interaction_handler import InteractionHandler
-from games.game import Game
-from games.states import GameState
+from game.controllers.interaction_handler import InteractionHandler
+from game.games.game import Game
+from game.games.states import GameState
 
 
 class InputHandler:
@@ -40,17 +40,13 @@ class InputHandler:
         return True  # Signal to continue the game
 
     def _handle_text_input(self, event: pygame.event.Event) -> None:
-        """Handles input during the TEXT_INPUT state."""
+        """Handles input during the TEXT_INPUT state, ignoring composition to prevent IME bugs."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                self.game.input_text += self.game.editing_text
-                self.game.editing_text = ""
+                # Process the finalized text. No composition text to worry about.
                 self.interaction_handler.process_text_input()
             elif event.key == pygame.K_BACKSPACE:
-                if self.game.editing_text:
-                    pass  # Let IME handle it
-                else:
-                    self.game.input_text = self.game.input_text[:-1]
+                self.game.input_text = self.game.input_text[:-1]
             elif event.key == pygame.K_UP:
                 self.game.chat_scroll_offset += 1
             elif event.key == pygame.K_DOWN:
@@ -63,14 +59,19 @@ class InputHandler:
                     self.game.active_npc.chat_history = []
                 self.game.state = GameState.PLAYING
                 self.game.active_npc = None
-                self.game.chat_display_text = ""
-                self.game.editing_text = ""
+                self.game.input_text = ""
+                self.game.editing_text = ""  # Keep clearing for safety
                 self.game.chat_scroll_offset = 0
+
         elif event.type == pygame.TEXTEDITING:
-            self.game.editing_text = event.text
+            # Ignore composition events to prevent sync bugs, at the cost of live composition display.
+            self.game.editing_text = ""  # Explicitly clear
+            pass
+
         elif event.type == pygame.TEXTINPUT:
+            # Finalized text from the IME is the only source of truth.
             self.game.input_text += event.text
-            self.game.editing_text = ""
+            self.game.editing_text = ""  # Ensure composition is cleared
 
     def _handle_menu_input(self, event: pygame.event.Event) -> None:
         """Handles input during the INTERACTION_MENU state."""
