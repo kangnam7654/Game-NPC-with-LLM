@@ -3,10 +3,10 @@
 # --- Game Settings (Adjustable) ---
 MIN_WINDOW_WIDTH: int = 800
 MIN_WINDOW_HEIGHT: int = 640
-GRID_WIDTH: int = 8  # Maze width
-GRID_HEIGHT: int = 8  # Maze height
+GRID_WIDTH: int = 7  # Maze width
+GRID_HEIGHT: int = 7  # Maze height
 GRID_SIZE: int = 30  # Default pixel size of each cell (can be scaled up)
-WALL_DENSITY: float = 0.1  # Wall density (higher value means narrower paths)
+WALL_DENSITY: float = 0  # Wall density (higher value means narrower paths)
 
 INFO_PANEL_HEIGHT: int = 180  # Height of the bottom info panel
 SCREEN_WIDTH: int = GRID_WIDTH * GRID_SIZE
@@ -45,3 +45,5 @@ NPC_PW_PROMPT_PATH: str = "llm/prompts/npc_password.md"
 BASE_FONT_MAIN_SIZE: int = 30
 BASE_FONT_INFO_SIZE: int = 8
 BASE_FONT_LABEL_SIZE: int = 11
+
+MAX_STEPS_PER_EPISODE: int = 200  # Maximum steps per episode

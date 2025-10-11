@@ -1,8 +1,11 @@
+import os
+import sys
 import time
 
-from stable_baselines3 import PPO
+from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from llm.clients.ollama_client import OllamaClient
 from rl.environments.maze_env import MazeEnv
 
@@ -17,30 +20,31 @@ def main() -> None:
     # Load the trained agent
     try:
         # The environment is automatically set when loading
-        model = PPO.load("rl/ppo_maze", env=env)
+        model = DQN.load("rl/dqn_maze.zip", env=env)
     except FileNotFoundError:
-        print("Error: Model file 'rl/ppo_maze.zip' not found.")
-        print("Please run train.py to create a model file first.")
+        print("Error: Model file 'rl/dqn_maze.zip' not found.")
+        print("Please run train_dqn.py to create a model file first.")
         return
 
     obs = env.reset()
 
     num_episodes = 10
     for episode in range(num_episodes):
+        total_reward = 0
         done = False
         while not done:
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated = env.step(action)
+            total_reward += reward[0]
 
             # The render method in the environment handles all Pygame updates and events
             env.render()
 
             # Add a delay to make the agent's actions observable
-            time.sleep(0.5)
-
+            # time.sleep(0.1)
+            print(f"Action taken: {action}, Reward received: {reward[0]}")
             done = terminated[0] or truncated[0].get("TimeLimit.truncated", False)
-
-        print(f"Episode {episode + 1} finished. Final reward: {reward[0]}")
+        print(f"Episode {episode + 1} finished. Final reward: {total_reward}")
         print("Resetting environment for the next episode.")
 
 

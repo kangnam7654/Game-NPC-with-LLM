@@ -166,8 +166,6 @@ class Game:
             and self.grid[py][px] == 0
         ):
             self.player_pos = (px, py)
-        if self.knows_location and self.player_pos == self.treasure_pos:
-            self.treasure_visible = True
         if self.treasure_opened and self.player_pos == self.exit_pos:
             self.state = GameState.GAME_OVER
             self.message = "성공! 보물을 가지고 미로를 탈출했습니다!"
