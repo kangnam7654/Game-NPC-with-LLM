@@ -51,6 +51,24 @@ python main.py
 -   **Confirm**: Enter
 -   **Cancel / Exit Menu**: ESC
 
+## Reinforcement Learning Environment
+
+This project also includes a reinforcement learning environment based on the game logic. The agent is trained to complete the full quest automatically.
+
+### How to Run the RL Agent
+
+1.  **Train the agent (optional):**
+    If you want to train the agent from scratch, run the training script. This will take a long time.
+    ```bash
+    python rl/train_full_quest.py
+    ```
+
+2.  **Run the pre-trained agent:**
+    To see the pre-trained PPO agent in action, run the following script:
+    ```bash
+    python rl/run_full_quest.py
+    ```
+
 ## Project Structure
 
 ```
