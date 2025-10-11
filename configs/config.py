@@ -5,6 +5,8 @@ MIN_WINDOW_WIDTH: int = 800
 MIN_WINDOW_HEIGHT: int = 640
 GRID_WIDTH: int = 7  # Maze width
 GRID_HEIGHT: int = 7  # Maze height
+# GRID_WIDTH: int = 9  # Maze width
+# GRID_HEIGHT: int = 9  # Maze height
 GRID_SIZE: int = 30  # Default pixel size of each cell (can be scaled up)
 WALL_DENSITY: float = 0  # Wall density (higher value means narrower paths)
 

@@ -10,6 +10,9 @@ This project serves as a practical demonstration of integrating a sophisticated 
 
 - **LLM-Powered NPCs**: NPCs are driven by an LLM, allowing for dynamic and unscripted conversations. Their personalities and core information are defined in external Markdown files, enabling easy modification and experimentation without changing game code.
 
+  ![LLM Greeting](images/llm_greeting.gif)
+  ![LLM Conversation](images/llm_conversation.gif)
+
 - **Dynamic Quest System**: Players must interact with NPCs to gather crucial information (e.g., the location of a treasure and its password) to complete the objective. The system tracks player knowledge to dynamically update objectives.
 
 - **Modular & Scalable Architecture**: The codebase is intentionally structured to be modular and maintainable, demonstrating a clear **Separation of Concerns (SoC)**:
@@ -54,6 +57,9 @@ python main.py
 ## Reinforcement Learning Environment
 
 This project also includes a reinforcement learning environment based on the game logic. The agent is trained to complete the full quest automatically.
+
+![Reinforcement Learning Agent 1](images/rl_1.gif)
+![Reinforcement Learning Agent 2](images/rl_2.gif)
 
 ### How to Run the RL Agent
 

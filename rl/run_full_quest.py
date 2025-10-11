@@ -28,7 +28,7 @@ for episode in range(10):
     while not done:
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, truncated, info = env.step(action)
-        time.sleep(0.2)
+        time.sleep(0.5)
         total_reward += reward
         step += 1
         if truncated:
