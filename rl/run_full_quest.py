@@ -1,14 +1,16 @@
 import os
 import sys
-
 import time
+
+from gymnasium.wrappers import TimeLimit
 from stable_baselines3 import PPO
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from rl.environments.full_quest_env import FullQuestEnv
+from rl.environments.full_quest_env_pass import FullQuestEnv
 
 # Create the environment with human render mode
 env = FullQuestEnv(render_mode="human")
+env = TimeLimit(env, max_episode_steps=100)
 
 # Load the trained PPO agent
 model_path = "rl/ppo_full_quest.zip"

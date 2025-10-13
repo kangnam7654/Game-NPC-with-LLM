@@ -42,12 +42,6 @@ def main() -> None:
     )
     # --- End of Dynamic Calculation ---
 
-    # model = AutoModelForCausalLM.from_pretrained(
-    #     config.LLM_MODEL_NAME, torch_dtype="bfloat16", device_map="auto"
-    # )
-    # tokenizer = AutoTokenizer.from_pretrained(config.LLM_MODEL_NAME)
-    # llm_client = HuggingFaceWrapper(model, tokenizer)
-
     llm_client = OllamaClient(model="gpt-oss:20b")
     pygame.init()
     screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))

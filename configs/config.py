@@ -45,7 +45,7 @@ NPC_PW_PROMPT_PATH: str = "llm/prompts/npc_password.md"
 
 # --- Font Settings ---
 BASE_FONT_MAIN_SIZE: int = 30
-BASE_FONT_INFO_SIZE: int = 8
+BASE_FONT_INFO_SIZE: int = 6
 BASE_FONT_LABEL_SIZE: int = 11
 
 MAX_STEPS_PER_EPISODE: int = 200  # Maximum steps per episode

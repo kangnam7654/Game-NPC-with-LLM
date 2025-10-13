@@ -1,12 +1,12 @@
 import os
 import sys
 
+from gymnasium.wrappers import TimeLimit
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from rl.environments.full_quest_env import FullQuestEnv
-
+from rl.environments.full_quest_env_pass import FullQuestEnv
 
 # Create log dir
 log_dir = "rl/logs/"
@@ -14,6 +14,7 @@ os.makedirs(log_dir, exist_ok=True)
 
 # Create and wrap the environment
 env = FullQuestEnv()
+env = TimeLimit(env, max_episode_steps=1000)  # 에피소드 최대 스텝 수 제한
 env = Monitor(env, log_dir)
 
 # Instantiate the agent

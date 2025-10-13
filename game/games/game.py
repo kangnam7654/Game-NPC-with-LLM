@@ -1,8 +1,7 @@
 import random
 
-
-from game.actors.npc import NPC
 from configs import config
+from game.actors.npc import NPC
 from game.games.states import GameState
 from game.maps.map_generator import generate_connected_map
 
@@ -132,16 +131,16 @@ class Game:
         self.chat_scroll_offset = 0
 
     def is_adjacent(self, pos1: tuple[int, int], pos2: tuple[int, int]) -> bool:
-        """Checks if two positions are adjacent (not diagonally).
+        """Checks if two positions are adjacent (not diagonally) or overlapping.
 
         Args:
             pos1 (tuple[int, int]): The first position (x, y).
             pos2 (tuple[int, int]): The second position (x, y).
 
         Returns:
-            bool: True if the positions are adjacent, False otherwise.
+            bool: True if the positions are adjacent or overlapping, False otherwise.
         """
-        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1]) == 1
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1]) <= 1
 
     def step(self, action: str) -> None:
         """Updates the game state based on the player's action.
@@ -149,8 +148,11 @@ class Game:
         Args:
             action (str): The action taken by the player (e.g., "up", "down").
         """
+        # Not playing state
         if self.state != GameState.PLAYING:
             return
+
+        # Moving
         px, py = self.player_pos
         if action == "up":
             py -= 1
@@ -166,6 +168,12 @@ class Game:
             and self.grid[py][px] == 0
         ):
             self.player_pos = (px, py)
+
+        # Found Treasure
+        if self.knows_location and self.player_pos == self.treasure_pos:
+            self.treasure_visible = True
+
+        # Exit
         if self.treasure_opened and self.player_pos == self.exit_pos:
             self.state = GameState.GAME_OVER
             self.message = "성공! 보물을 가지고 미로를 탈출했습니다!"

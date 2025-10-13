@@ -25,6 +25,8 @@ class InteractionHandler:
                 self.game.active_npc = npc
                 self.game.menu_selection = 0
                 return
+        
+        
 
         if (
             self.game.treasure_visible

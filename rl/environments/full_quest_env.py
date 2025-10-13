@@ -34,8 +34,8 @@ class FullQuestEnv(gym.Env):
             self.clock = pygame.time.Clock()
             self.renderer = Renderer(self.screen)
 
-        self.action_space = spaces.Discrete(4)  # up, down, left, right
-        self.action_map = {0: "up", 1: "down", 2: "left", 3: "right"}
+        self.action_space = spaces.Discrete(5)  # up, down, left, right
+        self.action_map = {0: "up", 1: "down", 2: "left", 3: "right", 4: "interact"}
 
         self.observation_space = spaces.Dict(
             {
@@ -49,6 +49,7 @@ class FullQuestEnv(gym.Env):
                 "visited_treasure_first": spaces.Discrete(2),
                 "has_password_info": spaces.Discrete(2),
                 "treasure_opened": spaces.Discrete(2),
+                "password": spaces.Discrete(10000)
             }
         )
 
@@ -106,11 +107,15 @@ class FullQuestEnv(gym.Env):
         player_pos = self.game.player_pos
 
         if player_pos == self.prev_pos:
-            reward -= 0.1  # Wall penalty
+            reward -= 0.1  # Wall penalty or Not Moving
 
         # Quest progression
         # 1. Visit Location NPC
-        if not self.game.knows_location and player_pos == self.game.npcs[0].pos:
+        if (
+            not self.game.knows_location
+            and self.game.is_adjacent(player_pos, self.game.npcs[0].pos)
+            and action == 4
+        ):
             self.game.knows_location = True
             reward += 50
 
@@ -118,7 +123,8 @@ class FullQuestEnv(gym.Env):
         elif (
             self.game.knows_location
             and not self.visited_treasure_first
-            and player_pos == self.game.treasure_pos
+            and self.game.is_adjacent(player_pos, self.game.treasure_pos)
+            and action == 4
         ):
             self.visited_treasure_first = True
             self.game.treasure_visible = True
@@ -128,7 +134,8 @@ class FullQuestEnv(gym.Env):
         elif (
             self.visited_treasure_first
             and not self.game.knows_password
-            and player_pos == self.game.npcs[1].pos
+            and self.game.is_adjacent(player_pos, self.game.npcs[1].pos)
+            and action == 4
         ):
             self.game.knows_password = True
             reward += 50
@@ -137,17 +144,18 @@ class FullQuestEnv(gym.Env):
         elif (
             self.game.knows_password
             and not self.game.treasure_opened
-            and player_pos == self.game.treasure_pos
+            and self.game.is_adjacent(player_pos, self.game.treasure_pos)
+            and action == 4
         ):
             self.game.treasure_opened = True
             reward += 50
 
         # Penalty for out-of-order actions
-        elif player_pos in [
-            self.game.npcs[0].pos,
-            self.game.npcs[1].pos,
-            self.game.treasure_pos,
-        ]:
+        elif (
+            self.game.is_adjacent(player_pos, self.game.npcs[0].pos)
+            or self.game.is_adjacent(player_pos, self.game.npcs[1].pos)
+            or self.game.is_adjacent(player_pos, self.game.treasure_pos)
+        ) and action == 4:
             reward -= 0.5
 
         # 5. Reach Exit
