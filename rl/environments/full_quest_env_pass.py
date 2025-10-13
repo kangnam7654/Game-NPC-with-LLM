@@ -1,3 +1,5 @@
+import logging
+
 import gymnasium as gym
 import numpy as np
 import pygame
@@ -6,6 +8,11 @@ from gymnasium import spaces
 from configs import config
 from game.games.game import Game
 from game.renderers.renderer import Renderer
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 
 
 class FullQuestEnv(gym.Env):
@@ -60,6 +67,7 @@ class FullQuestEnv(gym.Env):
                 "has_location_info": spaces.Discrete(2),
                 "visited_treasure_first": spaces.Discrete(2),
                 "has_password_info": spaces.Discrete(2),
+                "password_input_mode": spaces.Discrete(2),
                 "treasure_opened": spaces.Discrete(2),
                 "treasure_password": spaces.Discrete(10000),
                 "entered_password": spaces.Discrete(10000),
@@ -92,6 +100,7 @@ class FullQuestEnv(gym.Env):
             "visited_treasure_first": int(self.visited_treasure_first),
             "has_password_info": int(self.game.knows_password),
             "treasure_opened": int(self.game.treasure_opened),
+            "password_input_mode": int(self.password_input_mode),
             "treasure_password": (
                 int(self.game.password) if self.game.knows_password else 0
             ),
@@ -121,7 +130,7 @@ class FullQuestEnv(gym.Env):
             action = action.item()
 
         action_name = self.action_map[action]
-        reward = -0.01  # Time penalty
+        reward = -0.1  # Time penalty
         player_pos = self.game.player_pos
         # =======================
         # | Password Input Mode |
@@ -129,35 +138,29 @@ class FullQuestEnv(gym.Env):
         if self.password_input_mode:
             if action_name in self.digit_actions:
                 self.entered_password += str(self.digit_actions[action_name])
-                reward += 0.1  # Small reward for correct action type
+                reward += 0.05  # Small reward for correct action type
 
-                if len(self.entered_password) == 1:
-                    if self.entered_password[0] == self.game.password[0]:
-                        reward += 0.1
-                    else:
-                        reward -= 0.1
-                elif len(self.entered_password) == 2:
-                    if self.entered_password == self.game.password[:2]:
-                        reward += 0.1
-                    else:
-                        reward -= 0.1
-                elif len(self.entered_password) == 3:
-                    if self.entered_password == self.game.password[:3]:
-                        reward += 0.1
-                    else:
-                        reward -= 0.1
-                elif len(self.entered_password) == 4:
-                    if self.entered_password == self.game.password:
+                if len(self.entered_password) == 4:
+                    # if self.entered_password == self.game.password:
+                    n_correct = self.calculate_score(
+                        int(self.game.password), int(self.entered_password)
+                    )
+                    if n_correct == 4:
                         self.game.treasure_opened = True
-                        reward += 100  # Big reward for opening the treasure
-                    else:
-                        reward -= 10  # Big penalty for wrong password
+                        reward += 50  # Big reward for opening the treasure
+                    elif n_correct == 3:
+                        reward += 0.04
+                    elif n_correct == 2:
+                        reward += 0.01
+                    elif n_correct == 1:
+                        reward += 0.005
                     # Reset password mode
+                    logger.debug(f"Password entered: {self.entered_password}")
                     self.password_input_mode = False
                     self.entered_password = ""
             else:
                 # Penalty for doing non-digit action in password mode
-                reward -= 0.5
+                reward -= 0.1
                 # Exit password mode if player moves away or interacts again
                 self.password_input_mode = False
                 self.entered_password = ""
@@ -175,7 +178,7 @@ class FullQuestEnv(gym.Env):
             player_pos = self.game.player_pos  # Update player_pos after move
 
         if player_pos == self.prev_pos:
-            reward -= 0.1  # Wall penalty or Not Moving
+            reward -= 0.01  # Wall penalty or Not Moving
 
         # Quest progression
         # interact action
@@ -185,19 +188,20 @@ class FullQuestEnv(gym.Env):
                 player_pos, self.game.npcs[0].pos
             ):
                 self.game.knows_location = True
+                logger.debug("LOCATION NPC INTERACTION")
                 reward += 50
 
             # 2. Visit Treasure (first time)
             elif (
                 self.game.knows_location
                 and not self.visited_treasure_first
-                and not self.visited_treasure_first
                 and not self.game.knows_password
                 and self.game.is_adjacent(player_pos, self.game.treasure_pos)
             ):
                 self.visited_treasure_first = True
                 self.game.treasure_visible = True
-                reward += 25  # Reduced reward, as this is just a step
+                logger.debug("TREASURE FOUND")
+                reward += 50  # Reduced reward, as this is just a step
 
             # 3. Visit Password NPC
             elif (
@@ -206,6 +210,7 @@ class FullQuestEnv(gym.Env):
                 and self.game.is_adjacent(player_pos, self.game.npcs[1].pos)
             ):
                 self.game.knows_password = True
+                logger.debug("PASSWORD NPC INTERACTION")
                 reward += 50  # Now agent has all info
 
             # 4. Open Treasure (second visit)
@@ -217,7 +222,6 @@ class FullQuestEnv(gym.Env):
             ):
                 self.password_input_mode = True
                 self.entered_password = ""
-                reward += 0.5
 
             # Penalty for out-of-order actions
             elif (  # interact action
@@ -225,7 +229,7 @@ class FullQuestEnv(gym.Env):
                 or self.game.is_adjacent(player_pos, self.game.npcs[1].pos)
                 or self.game.is_adjacent(player_pos, self.game.treasure_pos)
             ):
-                reward -= 0.2
+                reward -= 0.05
 
         # 5. Reach Exit
         terminated = False
@@ -234,7 +238,7 @@ class FullQuestEnv(gym.Env):
                 reward += 100
                 terminated = True
             else:
-                reward -= 1  # Penalty for reaching exit without opening treasure
+                reward -= 0.05  # Penalty for reaching exit without opening treasure
 
         observation = self._get_obs()
         info = {}
@@ -260,3 +264,18 @@ class FullQuestEnv(gym.Env):
         if self.screen is not None:
             pygame.display.quit()
             pygame.quit()
+
+    def calculate_score(self, answer, guess):
+        score = 0
+        # 숫자를 네 자리 문자열로 변환하여 각 자리를 쉽게 비교합니다.
+        # f-string의 '04d' 포맷은 4자리 미만일 경우 앞에 0을 채워줍니다. (예: 4 -> '0004')
+        answer_str = f"{answer:04d}"
+        guess_str = f"{guess:04d}"
+
+        # 네 자리 숫자의 각 위치를 순회합니다 (인덱스 0, 1, 2, 3).
+        for i in range(4):
+            # 같은 위치(i)의 숫자가 서로 같으면 점수를 1 올립니다.
+            if answer_str[i] == guess_str[i]:
+                score += 1
+
+        return score

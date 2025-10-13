@@ -14,7 +14,7 @@ os.makedirs(log_dir, exist_ok=True)
 
 # Create and wrap the environment
 env = FullQuestEnv()
-env = TimeLimit(env, max_episode_steps=1000)  # 에피소드 최대 스텝 수 제한
+env = TimeLimit(env, max_episode_steps=2000)  # 에피소드 최대 스텝 수 제한
 env = Monitor(env, log_dir)
 
 # Instantiate the agent
@@ -36,7 +36,7 @@ model = PPO(
 
 # Train the agent
 # This is a very complex task and may require many more timesteps.
-model.learn(total_timesteps=2000000)
+model.learn(total_timesteps=10000000)
 
 # Save the agent
 model.save("rl/ppo_full_quest")
