@@ -10,7 +10,7 @@ from rl.environments.full_quest_env_pass import FullQuestEnv
 
 # Create the environment with human render mode
 env = FullQuestEnv(render_mode="human")
-env = TimeLimit(env, max_episode_steps=100)
+env = TimeLimit(env, max_episode_steps=50)
 
 # Load the trained PPO agent
 model_path = "rl/ppo_full_quest.zip"

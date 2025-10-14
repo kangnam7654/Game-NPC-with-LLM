@@ -14,9 +14,18 @@ class Renderer:
     def __init__(self, screen: pygame.Surface) -> None:
         """Initializes the Renderer."""
         self.screen: pygame.Surface = screen
-        self.fonts: dict[str, pygame.font.Font] = self._load_fonts()
+        self._update_fonts()
+        self._update_sprites()
         self.ui_manager: UIManager = UIManager(self.screen, self.fonts)
-        self.sprites: dict[str, pygame.Surface] = self._load_sprites()
+
+    def on_resize(self, size: tuple[int, int], grid_size: int) -> None:
+        """Handles window resize events."""
+        config.GRID_SIZE = grid_size
+        self.screen = pygame.display.set_mode(size, pygame.RESIZABLE)
+        self._update_fonts()
+        self._update_sprites()
+        self.ui_manager.screen = self.screen
+        self.ui_manager.fonts = self.fonts
 
     def _get_korean_font(self) -> str | None:
         """Finds an available Korean font on the system."""
@@ -35,8 +44,8 @@ class Renderer:
         print("\n[경고] 한글 폰트를 찾지 못했습니다. 한글이 깨질 수 있습니다.\n")
         return None
 
-    def _load_fonts(self) -> dict[str, pygame.font.Font]:
-        """Loads the fonts required for the game, scaling them based on the final grid size."""
+    def _update_fonts(self) -> None:
+        """Loads or reloads the fonts required for the game, scaling them based on the final grid size."""
         font_path = self._get_korean_font()
 
         # --- Font Scaling Logic ---
@@ -50,14 +59,14 @@ class Renderer:
         label_size = max(1, int(config.BASE_FONT_LABEL_SIZE * scaling_factor))
         # --- End of Scaling Logic ---
 
-        return {
+        self.fonts = {
             "main": pygame.font.Font(font_path, main_size),
             "info": pygame.font.Font(font_path, info_size),
             "label": pygame.font.Font(font_path, label_size),
         }
 
-    def _load_sprites(self) -> dict[str, pygame.Surface]:
-        """Loads all sprite images and scales them to the grid size."""
+    def _update_sprites(self) -> None:
+        """Loads or reloads all sprite images and scales them to the grid size."""
         sprite_paths = {
             "player": "game/sprites/player.png",
             "wall": "game/sprites/wall.png",
@@ -68,19 +77,18 @@ class Renderer:
             "npc_loc": "game/sprites/npc_loc.png",
             "npc_pw": "game/sprites/npc_pw.png",
         }
-        loaded_sprites = {}
+        self.sprites = {}
         for name, path in sprite_paths.items():
             try:
                 sprite = pygame.image.load(path).convert_alpha()
-                loaded_sprites[name] = pygame.transform.scale(
+                self.sprites[name] = pygame.transform.scale(
                     sprite, (config.GRID_SIZE, config.GRID_SIZE)
                 )
             except pygame.error:
                 print(f"[경고] 스프라이트 파일을 찾을 수 없습니다: {path}")
                 temp_surface = pygame.Surface((config.GRID_SIZE, config.GRID_SIZE))
                 temp_surface.fill(config.GRAY)  # Use a visible placeholder color
-                loaded_sprites[name] = temp_surface
-        return loaded_sprites
+                self.sprites[name] = temp_surface
 
     def draw(self, game: Game) -> None:
         """Draws the entire game screen using sprites."""

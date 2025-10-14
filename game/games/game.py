@@ -91,7 +91,7 @@ class Game:
         self.player_pos = pos[0]
         self.exit_pos = pos[1]
         self.treasure_pos = pos[2]
-        self.password = str(random.randint(1000, 9999))
+        self.password = str(random.randint(0, 9))
 
         with open(config.NPC_LOC_PROMPT_PATH, "r", encoding="utf-8") as f:
             loc_npc_prompt = f.read()

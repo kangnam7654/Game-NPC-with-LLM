@@ -69,8 +69,8 @@ class FullQuestEnv(gym.Env):
                 "has_password_info": spaces.Discrete(2),
                 "password_input_mode": spaces.Discrete(2),
                 "treasure_opened": spaces.Discrete(2),
-                "treasure_password": spaces.Discrete(10000),
-                "entered_password": spaces.Discrete(10000),
+                "treasure_password": spaces.Discrete(10),
+                "entered_password": spaces.Discrete(10),
             }
         )
 
@@ -140,22 +140,15 @@ class FullQuestEnv(gym.Env):
                 self.entered_password += str(self.digit_actions[action_name])
                 reward += 0.05  # Small reward for correct action type
 
-                if len(self.entered_password) == 4:
+                if len(self.entered_password) == 1:
                     # if self.entered_password == self.game.password:
-                    n_correct = self.calculate_score(
-                        int(self.game.password), int(self.entered_password)
-                    )
-                    if n_correct == 4:
+                    if self.entered_password == str(self.game.password):
                         self.game.treasure_opened = True
                         reward += 50  # Big reward for opening the treasure
-                    elif n_correct == 3:
-                        reward += 0.04
-                    elif n_correct == 2:
-                        reward += 0.01
-                    elif n_correct == 1:
-                        reward += 0.005
+                        logger.info(
+                            f"Password entered: {self.entered_password}, Password: {self.game.password}"
+                        )
                     # Reset password mode
-                    logger.debug(f"Password entered: {self.entered_password}")
                     self.password_input_mode = False
                     self.entered_password = ""
             else:

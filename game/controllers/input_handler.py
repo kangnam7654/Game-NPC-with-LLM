@@ -1,22 +1,31 @@
 import pygame
 
+from configs import config
 from game.controllers.interaction_handler import InteractionHandler
 from game.games.game import Game
 from game.games.states import GameState
+from game.renderers.renderer import Renderer
 
 
 class InputHandler:
     """Handles all user input for the game."""
 
-    def __init__(self, game: Game, interaction_handler: InteractionHandler) -> None:
+    def __init__(
+        self,
+        game: Game,
+        interaction_handler: InteractionHandler,
+        renderer: Renderer,
+    ) -> None:
         """Initializes the InputHandler.
 
         Args:
             game (Game): The main game object.
             interaction_handler (InteractionHandler): Handler for game interactions.
+            renderer (Renderer): The game renderer.
         """
         self.game: Game = game
         self.interaction_handler: InteractionHandler = interaction_handler
+        self.renderer: Renderer = renderer
 
     def handle_events(self) -> bool:
         """Processes all pending Pygame events and updates the game state.
@@ -28,6 +37,9 @@ class InputHandler:
             if event.type == pygame.QUIT:
                 return False  # Signal to quit the game
 
+            if event.type == pygame.VIDEORESIZE:
+                self._handle_resize(event)
+
             # Delegate to the appropriate handler based on game state
             if self.game.state == GameState.TEXT_INPUT:
                 self._handle_text_input(event)
@@ -38,6 +50,16 @@ class InputHandler:
             elif self.game.state == GameState.PLAYING:
                 self._handle_playing_input(event)
         return True  # Signal to continue the game
+
+    def _handle_resize(self, event: pygame.event.Event) -> None:
+        """Handles the window resize event."""
+        config.SCREEN_WIDTH, config.SCREEN_HEIGHT = event.w, event.h
+        size_from_w = event.w // config.GRID_WIDTH
+        size_from_h = (event.h - config.INFO_PANEL_HEIGHT) // config.GRID_HEIGHT
+        config.GRID_SIZE = min(size_from_w, size_from_h)
+        self.renderer.on_resize(
+            (config.SCREEN_WIDTH, config.SCREEN_HEIGHT), config.GRID_SIZE
+        )
 
     def _handle_text_input(self, event: pygame.event.Event) -> None:
         """Handles input during the TEXT_INPUT state, ignoring composition to prevent IME bugs."""
