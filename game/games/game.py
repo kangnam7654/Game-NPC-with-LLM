@@ -33,8 +33,14 @@ class Game:
         ollama_client (OllamaClient): The client for communicating with Ollama.
     """
 
-    def __init__(self, llm_client) -> None:
-        """Initializes the game state."""
+    def __init__(self, llm_client, rng: random.Random | None = None) -> None:
+        """Initializes the game state.
+
+        Args:
+            llm_client: Client used for NPC conversations (may be None).
+            rng (random.Random | None): Optional dedicated random generator for
+                the initial layout. Defaults to the module-global ``random``.
+        """
         self.grid: list[list[int]] = []
         self.player_pos: tuple[int, int] = (0, 0)
         self.exit_pos: tuple[int, int] = (0, 0)
@@ -57,28 +63,45 @@ class Game:
         self.objective: str = ""
         self.llm_client = llm_client
         self.chat_scroll_offset: int = 0
-        self.reset()
+        self.reset(rng=rng)
 
-    def _get_random_empty_cells(self, count: int) -> list[tuple[int, int]]:
+    def _get_random_empty_cells(
+        self, count: int, rng: random.Random | None = None
+    ) -> list[tuple[int, int]]:
         """Gets a list of random empty cells from the grid.
 
         Args:
             count (int): The number of empty cells to return.
+            rng (random.Random | None): Optional dedicated random generator.
+                Defaults to the module-global ``random``.
 
         Returns:
             list[tuple[int, int]]: A list of (x, y) tuples for empty cells.
         """
+        if rng is None:
+            rng = random  # type: ignore[assignment]
         empty_cells: list[tuple[int, int]] = []
         for r in range(config.GRID_HEIGHT):
             for c in range(config.GRID_WIDTH):
                 if self.grid[r][c] == 0:
                     empty_cells.append((c, r))
-        random.shuffle(empty_cells)
+        rng.shuffle(empty_cells)
         return [empty_cells.pop() for _ in range(min(count, len(empty_cells)))]
 
-    def reset(self) -> None:
-        """Resets the game to its initial state."""
-        self.grid = generate_connected_map()
+    def reset(self, rng: random.Random | None = None) -> None:
+        """Resets the game to its initial state.
+
+        Args:
+            rng (random.Random | None): Optional dedicated random generator used
+                for the map, positions and password. When omitted, the
+                module-global ``random`` is used exactly as before. A seeded
+                ``random.Random`` gives a reproducible layout without reading or
+                mutating the global random state.
+        """
+        if rng is None:
+            rng = random  # type: ignore[assignment]
+
+        self.grid = generate_connected_map(rng=rng)
 
         self.knows_location = False
         self.knows_password = False
@@ -87,11 +110,11 @@ class Game:
 
         self.state = GameState.PLAYING
 
-        pos = self._get_random_empty_cells(5)
+        pos = self._get_random_empty_cells(5, rng=rng)
         self.player_pos = pos[0]
         self.exit_pos = pos[1]
         self.treasure_pos = pos[2]
-        self.password = str(random.randint(0, 9))
+        self.password = str(rng.randint(0, 9))
 
         with open(config.NPC_LOC_PROMPT_PATH, "r", encoding="utf-8") as f:
             loc_npc_prompt = f.read()
