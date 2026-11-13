@@ -1,5 +1,10 @@
 """Configuration file for game settings and constants."""
 
+import os
+
+# Repository root (parent of ``configs/``), so file paths work from any cwd.
+_REPO_ROOT: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # --- Game Settings (Adjustable) ---
 GRID_WIDTH: int = 7  # Maze width
 GRID_HEIGHT: int = 7  # Maze height
@@ -35,8 +40,8 @@ UI_BORDER_COLOR: Color = (150, 150, 200)
 LLM_MODEL_NAME: str = "LGAI-EXAONE/EXAONE-4.0-32B-AWQ"
 
 # --- Prompt File Paths ---
-NPC_LOC_PROMPT_PATH: str = "llm/prompts/npc_location.md"
-NPC_PW_PROMPT_PATH: str = "llm/prompts/npc_password.md"
+NPC_LOC_PROMPT_PATH: str = os.path.join(_REPO_ROOT, "llm", "prompts", "npc_location.md")
+NPC_PW_PROMPT_PATH: str = os.path.join(_REPO_ROOT, "llm", "prompts", "npc_password.md")
 
 
 # --- Font Settings ---

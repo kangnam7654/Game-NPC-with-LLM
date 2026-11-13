@@ -1,8 +1,8 @@
 # Procedural Quest Maze (Portfolio Project)
 
-This project is a 2D maze escape game developed with Pygame, featuring NPCs powered by a Large Language Model (LLM) via the Hugging Face Transformers library. It is designed to showcase modern software architecture, including separation of concerns, event-driven programming, and dynamic content generation.
+In this Pygame maze, the player asks two NPCs for a treasure's location and password, opens the chest, and reaches the exit. The interactive game uses a local Ollama chat client. A separate Gymnasium environment lets a committed PPO policy (`rl/ppo_full_quest.zip`) attempt the same quest with rule-based NPC interactions, not generated dialogue.
 
-This project serves as a practical demonstration of integrating a sophisticated AI model into a real-time interactive application, with a strong focus on creating modular, scalable, and maintainable code.
+In one reproducible headless run (seeds 0–19, 1024-step limit), the checkpoint completed 14 quests and timed out on 6. This is a small sample, not a general success-rate estimate. [Repeat the run](#evaluate-the-pre-trained-agent).
 
 ## Core Features
 
@@ -27,8 +27,8 @@ This project serves as a practical demonstration of integrating a sophisticated 
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/kangnam7654/Game-NPC-with-LLM.git
+    cd Game-NPC-with-LLM
     ```
 
 2.  **Install dependencies:**
@@ -56,24 +56,37 @@ python main.py
 
 ## Reinforcement Learning Environment
 
-This project also includes a reinforcement learning environment based on the game logic. The agent is trained to complete the full quest automatically.
+This project also includes a reinforcement learning environment based on the game logic (`rl/environments/full_quest_env_pass.py`). A PPO agent was trained to attempt the full quest: location NPC → treasure → password NPC → enter the one-digit password at the treasure → exit.
 
 ![Reinforcement Learning Agent 1](images/rl_1.gif)
 ![Reinforcement Learning Agent 2](images/rl_2.gif)
 
-### How to Run the RL Agent
+In this environment the NPCs are **rule-based**: being adjacent and choosing "interact" sets the corresponding knowledge flag. No LLM is called, so RL results say nothing about the LLM conversations shown above.
 
-1.  **Train the agent (optional):**
-    If you want to train the agent from scratch, run the training script. This will take a long time.
-    ```bash
-    python rl/train_full_quest.py
-    ```
+### Evaluate the pre-trained agent
 
-2.  **Run the pre-trained agent:**
-    To see the pre-trained PPO agent in action, run the following script:
-    ```bash
-    python rl/run_full_quest.py
-    ```
+`rl/run_full_quest.py` loads the committed checkpoint (path resolved from the repository root, so it works from any directory), runs the policy deterministically, and prints a JSON report. It never trains, downloads, or calls an LLM.
+
+```bash
+# Quick headless evaluation (no window, no delay)
+python rl/run_full_quest.py --episodes 20 --seed 0
+
+# Optional: watch it in a Pygame window (needs a desktop)
+python rl/run_full_quest.py --episodes 3 --render --delay 0.2
+```
+
+- **Seed**: episode *i* is reset with `seed + i`, which reproduces the same map, positions, and password.
+- **Horizon**: `--max-steps` (default `1024`, the training limit) is enforced with Gymnasium's `TimeLimit`.
+- **Outcome**: each episode is `solved` (the environment *terminated*: treasure opened and exit reached) or `truncated` (time limit hit first). The report also lists the step at which each quest milestone was first reached. It is a small deterministic sample on the listed seeds, not a benchmark.
+
+With the checked-in checkpoint, `--episodes 20 --seed 0 --max-steps 1024` completed 14 quests and truncated 6. For example, seed 2 found the treasure but never obtained the password before the step limit. These are observed outcomes for this checkpoint and these generated layouts only; they do not establish a general completion rate. The report retains per-seed steps and quest milestones, including unsuccessful runs. Only load checkpoints you trust.
+
+### Train the agent (optional)
+
+Training from scratch takes a long time and was not rerun for the result above. `rl/train_full_quest.py` still has a machine-specific path for optional weight reuse; if that path does not exist it starts from scratch rather than resuming. Check that script before running it:
+```bash
+python rl/train_full_quest.py
+```
 
 ## Project Structure
 

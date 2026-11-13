@@ -3,16 +3,25 @@ import random
 from configs import config
 
 
-def generate_connected_map() -> list[list[int]]:
+def generate_connected_map(rng: random.Random | None = None) -> list[list[int]]:
     """Generates a connected map using the 'Drunkard's Walk' algorithm.
 
     This algorithm starts from a random point and carves out a path by moving
     randomly, ensuring all paths are connected.
 
+    Args:
+        rng (random.Random | None): Optional dedicated random generator. When
+            omitted, the module-global ``random`` is used (interactive game
+            behavior is unchanged). Passing a seeded ``random.Random`` makes the
+            map reproducible without touching the global random state.
+
     Returns:
         list[list[int]]: A 2D list representing the map grid, where 0 is a path
                          and 1 is a wall.
     """
+    if rng is None:
+        rng = random  # type: ignore[assignment]
+
     grid: list[list[int]] = [
         [1] * config.GRID_WIDTH for _ in range(config.GRID_HEIGHT)
     ]  # 1: Wall
@@ -21,14 +30,14 @@ def generate_connected_map() -> list[list[int]]:
     target_floor_count = int(total_internal_cells * (1 - config.WALL_DENSITY))
 
     # Start walker at a random position
-    cx = random.randint(1, config.GRID_WIDTH - 2)
-    cy = random.randint(1, config.GRID_HEIGHT - 2)
+    cx = rng.randint(1, config.GRID_WIDTH - 2)
+    cy = rng.randint(1, config.GRID_HEIGHT - 2)
     grid[cy][cx] = 0  # 0: Path
     floor_count = 1
 
     while floor_count < target_floor_count:
         # Choose a random direction
-        dx, dy = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
+        dx, dy = rng.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
         nx, ny = cx + dx, cy + dy
 
         # Stay within the inner bounds of the map

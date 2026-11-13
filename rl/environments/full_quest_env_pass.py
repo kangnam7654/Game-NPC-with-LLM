@@ -1,4 +1,5 @@
 import logging
+import random
 
 import gymnasium as gym
 import numpy as np
@@ -22,8 +23,16 @@ class FullQuestEnv(gym.Env):
 
     def __init__(self, render_mode=None):
         super().__init__()
-        self.game = Game(llm_client=None)
+        # The initial layout is a placeholder (reset() regenerates it); use a
+        # private generator so constructing the env does not consume the
+        # module-global random state.
+        self.game = Game(llm_client=None, rng=random.Random())
         self.render_mode = render_mode
+        # Dedicated layout RNG, created on the first seeded reset. Following
+        # Gymnasium semantics, later unseeded resets continue this stream so a
+        # seeded sequence of episodes is reproducible. Until the env is seeded,
+        # layouts come from the module-global random as before.
+        self._layout_rng = None
 
         # Custom state for the quest progression
         self.visited_treasure_first = False
@@ -111,7 +120,9 @@ class FullQuestEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self.game.reset()
+        if seed is not None:
+            self._layout_rng = random.Random(seed)
+        self.game.reset(rng=self._layout_rng)
         self.game.knows_location = False
         self.game.knows_password = False
         self.game.treasure_opened = False
