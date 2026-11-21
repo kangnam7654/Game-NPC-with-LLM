@@ -83,10 +83,31 @@ With the checked-in checkpoint, `--episodes 20 --seed 0 --max-steps 1024` comple
 
 ### Train the agent (optional)
 
-Training from scratch takes a long time and was not rerun for the result above. `rl/train_full_quest.py` still has a machine-specific path for optional weight reuse; if that path does not exist it starts from scratch rather than resuming. Check that script before running it:
+The evaluation result above comes from the committed checkpoint `rl/ppo_full_quest.zip`. Training was not rerun to produce it, and the training script never writes to that file.
+
+`rl/train_full_quest.py` needs a **new** `--output-dir` and a bounded `--timesteps`. It refuses to use an existing directory. Every file from a run goes into that directory: the final `ppo_full_quest.zip`, `best_model/`, monitor CSVs, `evaluations.npz` and `run_config.json`. `rl/logs/` is git-ignored, so it is a convenient place for runs. Importing the script or running `--help` does nothing else.
+
 ```bash
-python rl/train_full_quest.py
+# Long run with the original settings (PPO MultiInputPolicy, 1024-step episodes,
+# lr 1e-4, n_steps 512, batch 64, n_epochs 20, eval every 10,240 steps over 5 episodes)
+python rl/train_full_quest.py --output-dir rl/logs/run-001 --timesteps 20000000
+
+# Short CPU smoke run: only checks that the pipeline works; it does NOT train a useful policy
+python rl/train_full_quest.py --output-dir rl/logs/smoke-001 --timesteps 128 \
+    --n-steps 64 --n-epochs 1 --eval-freq 64 --eval-episodes 1 --device cpu
+
+# Optional: continue from a full SB3 PPO checkpoint that you trust
+python rl/train_full_quest.py --output-dir rl/logs/resume-001 --timesteps 1000000 \
+    --resume /path/to/trusted_checkpoint.zip
+
+# Evaluate any resulting checkpoint the same way as the committed one
+python rl/run_full_quest.py --model rl/logs/run-001/ppo_full_quest.zip --episodes 20 --seed 0
 ```
+
+- **Scratch by default; resume only on request.** `--resume` loads a complete SB3 PPO checkpoint and keeps its hyperparameters. Its observation and action spaces must match `FullQuestEnv`. `--timesteps` then counts additional steps. A missing, unreadable or incompatible checkpoint stops the script with an error before any output is created. It never falls back to training from scratch.
+- **Trusted files only.** SB3 checkpoints contain pickled Python objects, and loading one can run code. `--resume` is not a security sandbox.
+- **Seeds.** `--seed` (default 0) seeds the model and the training environment. The evaluation environment uses `seed + 10000`. The script restores the process-global `random`, NumPy and torch generator states after the run. Results with the same seed may still differ across library versions or hardware.
+- **Smoke vs. long training.** Smoke runs and the automated tests only show that the code runs. They do not show that a long run reproduces the committed checkpoint's behaviour, and they say nothing about policy quality. No new training results are reported here. The RL environment uses rule-based NPCs, so training says nothing about the LLM dialogue. `--tensorboard` (optional) writes TensorBoard logs into the output directory.
 
 ## Project Structure
 
