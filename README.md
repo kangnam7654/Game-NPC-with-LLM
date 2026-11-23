@@ -40,7 +40,9 @@ In one reproducible headless run (seeds 0–19, 1024-step limit), the checkpoint
 
 ## How to Run
 
-Execute the main script from the project root directory:
+**Prerequisite for NPC chat:** a local [Ollama](https://ollama.com) server on `localhost:11434` with the model hard-coded in `main.py`, `gpt-oss:20b` (for example `ollama pull gpt-oss:20b`). Nothing else is configured: no remote provider, no API key. Without the server, the game still runs. Free chat shows a failure notice, and the fixed-information menu still works.
+
+Execute the main script from the project root directory (sprites and fonts are loaded from relative paths):
 
 ```bash
 python main.py
@@ -48,11 +50,47 @@ python main.py
 
 ## Controls
 
--   **Movement**: Arrow Keys (↑, ↓, ←, →)
+-   **Movement**: Arrow Keys (↑, ↓, ←, →) or W/A/S/D
 -   **Interact**: Spacebar (when adjacent to an NPC or object)
--   **Menu Navigation**: Arrow Keys (↑, ↓) or Number Keys (1, 2, ...)
--   **Confirm**: Enter
--   **Cancel / Exit Menu**: ESC
+-   **Menu Navigation**: Arrow Keys (↑, ↓)
+-   **Confirm / Send chat message**: Enter
+-   **Scroll chat**: Arrow Keys (↑, ↓) while chatting
+-   **Cancel / Exit Menu or Chat**: ESC (leaving a chat clears that NPC's chat history)
+
+## NPC Dialogue: Behaviour and Limits
+
+Each NPC menu has two ways to get information:
+
+1. **Fixed information** (`(고정된) 정보 확인`) is deterministic and never calls the LLM. The location NPC gives the coordinates. The password NPC gives the password only after the location is known.
+2. **Free chat** (`자유롭게 대화하기`) sends the NPC's recent history, at most 6 messages, to Ollama (`llm/clients/ollama_client.py`).
+
+How free chat behaves:
+
+- **One request with timeouts.** Each reply comes from one non-streaming `POST /api/chat` with a timeout of 5 s to connect and 120 s of read inactivity. This is not a total wall-clock deadline. The call runs on the game thread, so the window stops responding while it waits. Streaming (`stream=True`) is rejected because the client does not parse NDJSON.
+- **Failures are explicit.** Failure cases are: no connection, a timeout, a non-2xx status, a body that is not JSON, or a body without a non-empty text `message.content`. In all of them the client returns `None`. The game shows a retryable notice in the info panel. It adds no reply to the history, changes no quest flag and keeps your typed text, so Enter retries and ESC leaves. Error messages do not include the prompt or the response body.
+- **Quest progress comes from a text heuristic.** It does not understand meaning (`game/controllers/interaction_handler.py`).
+  - **Location:** the location NPC's reply must mention the treasure/location and give an explicit coordinate pair such as `(x, y)`, `좌표는 x, y` or `x=…, y=…`. Every pair in the reply must be the correct one. A lone digit, a wrong `y` or unrelated numbers do not count.
+  - **Password:** only counts after the location is known. The password NPC's reply must state it explicitly, for example `암호는 '7'`.
+  - **What is ignored:** statements in negated sentences or questions, values the player typed in the same message, and information from the other NPC.
+  - **Misjudgements are possible.** Spelled-out numbers or unusual phrasing can be missed, and a misleading reply can be misread. The fixed menu is the reliable path.
+- **The password stays out of the prompt until it is earned.** Until the location is known, the password NPC's system prompt has a placeholder instead of the password. This only limits what the model is given. It is not a security boundary.
+
+No model-backed evaluation of these conversations is reported here. The automated tests use scripted, synthetic replies.
+
+## Offline Tests
+
+With `pytest` installed, the tests are meant to run without Ollama, a GPU, external network access or a display. They use the SDL dummy video driver.
+
+```bash
+python -m pytest tests/
+```
+
+`tests/test_npc_dialogue.py` checks the following:
+
+- The Ollama client against a mocked `requests.post` and a loopback HTTP server: success, missing or malformed bodies, HTTP errors and timeouts.
+- Headless Pygame interaction with a scripted fake LLM: coordinate and password rules, failed and retried chat, history bound and the fixed menu.
+
+The RL tests (`tests/test_rl_*.py`) are separate.
 
 ## Reinforcement Learning Environment
 
@@ -113,17 +151,21 @@ python rl/run_full_quest.py --model rl/logs/run-001/ppo_full_quest.zip --episode
 
 ```
 /
-├── actors/             # Game character logic (e.g., NPC class)
+├── configs/            # Game settings (screen size, colors, prompt paths, etc.)
+├── game/
+│   ├── actors/         # Game character logic (e.g., NPC class)
+│   ├── controllers/    # Player input and interaction logic (incl. dialogue heuristic)
+│   ├── fonts/          # Font files used in the game
+│   ├── games/          # Core game logic and state management
+│   ├── maps/           # Maze generation logic
+│   ├── renderers/      # Screen rendering logic
+│   ├── sprites/        # Image assets (player, walls, NPCs, etc.)
+│   └── ui/             # UI element management (menus, text boxes)
+├── llm/
+│   ├── clients/        # LLM clients (Ollama chat client used by main.py)
 │   └── prompts/        # Markdown files defining NPC personalities and knowledge
-├── clients/            # Wrappers for external APIs (e.g., LLM client)
-├── configs/            # Game settings (screen size, colors, fonts, etc.)
-├── controllers/        # Handles player input and interaction logic
-├── fonts/              # Font files used in the game
-├── sprites/            # Image assets (player, walls, NPCs, etc.)
-├── games/              # Core game logic and state management
-├── maps/               # Maze generation logic
-├── renderers/          # Screen rendering logic
-├── ui/                 # UI element management (menus, text boxes)
+├── rl/                 # Rule-based RL environment, PPO checkpoint, train/eval scripts
+├── tests/              # Offline tests (NPC dialogue, RL)
 ├── main.py             # Main entry point of the application
 ├── pyproject.toml      # Project metadata and dependencies
 └── README.md           # This file

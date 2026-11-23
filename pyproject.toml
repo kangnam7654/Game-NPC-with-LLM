@@ -8,6 +8,7 @@ dependencies = [
     "gymnasium>=1.2.1",
     "numpy>=2.3.3",
     "pygame>=2.6.1",
+    "requests>=2.31",
     "stable-baselines3[extra]>=2.7.0",
     "torch>=2.8.0",
     'transformers>=4.56.2',
